@@ -13,14 +13,6 @@ import { backend } from './services/backend';
 import { checkAndMigrate } from './services/migration';
 import { Layers, Database, Server, RefreshCw, Upload, CloudUpload } from 'lucide-react';
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
 
 export default function App() {
   const [salesData, setSalesData] = useState<SalesRecord[]>([]);
@@ -86,26 +78,27 @@ export default function App() {
   const metrics: SalesMetrics = useMemo(() => {
     if (salesData.length === 0) {
       return {
-        totalRevenue: 0,
         totalUnits: 0,
         uniqueStores: 0,
         uniqueProducts: 0,
-        averageOrderValue: 0,
+        uniqueGroups: 0,
+        averageUnitsPerDay: 0,
         topStores: [],
         topProducts: [],
+        topGroups: [],
         timeline: [],
         dateRange: { start: '-', end: '-' }
       };
     }
 
-    const totalRevenue = salesData.reduce((acc, curr) => acc + curr.total, 0);
     const totalUnits = salesData.reduce((acc, curr) => acc + curr.qty, 0);
     const uniqueStores = new Set(salesData.map(d => d.store)).size;
     const uniqueProducts = new Set(salesData.map(d => d.product)).size;
+    const uniqueGroups = new Set(salesData.filter(d => d.grupo).map(d => d.grupo)).size;
 
     const storeMap: Record<string, number> = {};
     salesData.forEach(d => {
-      storeMap[d.store] = (storeMap[d.store] || 0) + d.total;
+      storeMap[d.store] = (storeMap[d.store] || 0) + d.qty;
     });
     const topStores = Object.entries(storeMap)
       .map(([name, val]) => ({ name, value: val }))
@@ -120,6 +113,16 @@ export default function App() {
       .map(([name, val]) => ({ name, value: val }))
       .sort((a, b) => b.value - a.value);
 
+    const groupMap: Record<string, number> = {};
+    salesData.forEach(d => {
+      if (d.grupo) {
+        groupMap[d.grupo] = (groupMap[d.grupo] || 0) + d.qty;
+      }
+    });
+    const topGroups = Object.entries(groupMap)
+      .map(([name, val]) => ({ name, value: val }))
+      .sort((a, b) => b.value - a.value);
+
     const dateMap: Record<string, number> = {};
     const dates: string[] = [];
     salesData.forEach(d => {
@@ -127,7 +130,7 @@ export default function App() {
         dateMap[d.date] = 0;
         dates.push(d.date);
       }
-      dateMap[d.date] += d.total;
+      dateMap[d.date] += d.qty;
     });
     const timeline = Object.entries(dateMap)
       .map(([date, val]) => ({ date, value: val }))
@@ -139,14 +142,18 @@ export default function App() {
       end: dates[dates.length - 1] || '-'
     };
 
+    const uniqueDays = dates.length;
+    const averageUnitsPerDay = uniqueDays > 0 ? totalUnits / uniqueDays : 0;
+
     return {
-      totalRevenue,
       totalUnits,
       uniqueStores,
       uniqueProducts,
-      averageOrderValue: totalRevenue / salesData.length,
+      uniqueGroups,
+      averageUnitsPerDay,
       topStores,
       topProducts,
+      topGroups,
       timeline,
       dateRange
     };
@@ -419,11 +426,9 @@ export default function App() {
                   <tr>
                     <th className="px-6 py-4 font-bold">Fecha</th>
                     <th className="px-6 py-4 font-bold">Tienda</th>
-                    <th className="px-6 py-4 font-bold">EAN</th>
+                    <th className="px-6 py-4 font-bold">Grupo</th>
                     <th className="px-6 py-4 font-bold">Producto</th>
-                    <th className="px-6 py-4 text-right font-bold">Cant.</th>
-                    <th className="px-6 py-4 text-right font-bold">Precio</th>
-                    <th className="px-6 py-4 text-right font-bold">Total</th>
+                    <th className="px-6 py-4 text-right font-bold">Cantidad</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -431,16 +436,22 @@ export default function App() {
                     <tr key={idx} className="bg-white hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent transition-all duration-200">
                       <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-700">{row.date}</td>
                       <td className="px-6 py-3 font-bold text-slate-800">{row.store}</td>
-                      <td className="px-6 py-3 font-mono text-xs text-slate-400">{row.ean}</td>
+                      <td className="px-6 py-3 text-sm">
+                        {row.grupo ? (
+                          <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-md font-semibold text-xs">
+                            {row.grupo}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
+                      </td>
                       <td className="px-6 py-3 max-w-xs truncate" title={row.product}>{row.product}</td>
-                      <td className="px-6 py-3 text-right text-slate-600 font-medium">{row.qty}</td>
-                      <td className="px-6 py-3 text-right text-slate-600">{formatCurrency(row.price)}</td>
-                      <td className="px-6 py-3 text-right font-bold text-blue-700">{formatCurrency(row.total)}</td>
+                      <td className="px-6 py-3 text-right text-blue-700 font-bold text-lg">{row.qty.toLocaleString()}</td>
                     </tr>
                   ))}
                   {salesData.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-24 text-center">
+                      <td colSpan={5} className="px-6 py-24 text-center">
                         <Database className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-400 text-lg font-medium">La base de datos está vacía.</p>
                         <p className="text-slate-400 text-sm mt-2">Sube archivos para empezar</p>

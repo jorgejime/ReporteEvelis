@@ -3,27 +3,28 @@ import { SalesRecord } from "../types";
 import { backend } from "./backend";
 
 const CHAT_SYSTEM_INSTRUCTION = `
-Eres un asistente de análisis de ventas experto que responde preguntas en lenguaje natural sobre datos de ventas.
+Eres un asistente de análisis de cantidades vendidas experto que responde preguntas en lenguaje natural sobre datos de ventas.
 
 Tu trabajo es:
-1. Analizar la pregunta del usuario y extraer los filtros necesarios (tienda, producto, rango de fechas).
-2. Interpretar los datos de ventas filtrados.
+1. Analizar la pregunta del usuario y extraer los filtros necesarios (tienda, producto, grupo, rango de fechas).
+2. Interpretar los datos de ventas filtrados enfocándote en CANTIDADES vendidas (unidades).
 3. Generar una respuesta clara y concisa en ESPAÑOL.
 4. Decidir si la respuesta debe incluir un gráfico o solo texto.
 
 Formato de Respuesta:
 - Usa HTML limpio para formatear texto (sin etiquetas <html>, <head>, <body>)
-- Usa <strong> para resaltar cifras importantes
+- Usa <strong> para resaltar cifras importantes de UNIDADES
 - Usa <ul>/<li> para listas
 - Usa <p> para párrafos
 - NO uses bloques de código markdown
 
 Cuando generar gráficos:
 - Si la pregunta es sobre tendencias en el tiempo → sugiere LineChart
-- Si la pregunta compara entre tiendas o productos → sugiere BarChart
+- Si la pregunta compara entre tiendas, productos o grupos → sugiere BarChart
 - Si la pregunta es sobre distribución o porcentajes → sugiere PieChart
 - Si solo piden un número o información simple → solo texto
 
+IMPORTANTE: NO menciones dinero, precios ni ingresos. Solo habla de CANTIDADES y UNIDADES vendidas.
 Tono: Amigable, profesional, directo y basado en los datos provistos.
 `;
 
@@ -39,6 +40,7 @@ export interface ChatResponse {
   filters?: {
     store?: string;
     product?: string;
+    grupo?: string;
     startDate?: string;
     endDate?: string;
   };
@@ -47,6 +49,7 @@ export interface ChatResponse {
 export const extractFiltersFromQuestion = (question: string): {
   store?: string;
   product?: string;
+  grupo?: string;
   startDate?: string;
   endDate?: string;
 } => {
@@ -55,6 +58,7 @@ export const extractFiltersFromQuestion = (question: string): {
 
   const storeKeywords = ['tienda', 'sede', 'sucursal', 'local'];
   const productKeywords = ['producto', 'canto', 'rollo', 'vinilo'];
+  const grupoKeywords = ['grupo', 'categoría', 'etiqueta'];
 
   const datePatterns = {
     'este mes': () => {
@@ -115,49 +119,41 @@ export const extractFiltersFromQuestion = (question: string): {
         break;
       }
     }
+
+    if (grupoKeywords.some(keyword => word.includes(keyword))) {
+      if (i + 1 < words.length) {
+        filters.grupo = words.slice(i + 1).join(' ').replace(/[¿?]/g, '').trim();
+        break;
+      }
+    }
   }
 
   return filters;
 };
 
-const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('es-CO', {
-    style: 'currency',
-    currency: 'COP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(value);
-};
-
 const aggregateDataByStore = (data: SalesRecord[]) => {
-  const storeMap = new Map<string, { total: number; units: number }>();
+  const storeMap = new Map<string, number>();
 
   data.forEach(record => {
-    const current = storeMap.get(record.store) || { total: 0, units: 0 };
-    storeMap.set(record.store, {
-      total: current.total + record.total,
-      units: current.units + record.qty
-    });
+    const current = storeMap.get(record.store) || 0;
+    storeMap.set(record.store, current + record.qty);
   });
 
   return Array.from(storeMap.entries())
-    .map(([name, data]) => ({ name, value: data.total, units: data.units }))
+    .map(([name, units]) => ({ name, value: units, units }))
     .sort((a, b) => b.value - a.value);
 };
 
 const aggregateDataByProduct = (data: SalesRecord[]) => {
-  const productMap = new Map<string, { total: number; units: number }>();
+  const productMap = new Map<string, number>();
 
   data.forEach(record => {
-    const current = productMap.get(record.product) || { total: 0, units: 0 };
-    productMap.set(record.product, {
-      total: current.total + record.total,
-      units: current.units + record.qty
-    });
+    const current = productMap.get(record.product) || 0;
+    productMap.set(record.product, current + record.qty);
   });
 
   return Array.from(productMap.entries())
-    .map(([name, data]) => ({ name, value: data.total, units: data.units }))
+    .map(([name, units]) => ({ name, value: units, units }))
     .sort((a, b) => b.value - a.value);
 };
 
@@ -166,7 +162,7 @@ const aggregateDataByDate = (data: SalesRecord[]) => {
 
   data.forEach(record => {
     const current = dateMap.get(record.date) || 0;
-    dateMap.set(record.date, current + record.total);
+    dateMap.set(record.date, current + record.qty);
   });
 
   return Array.from(dateMap.entries())
@@ -224,17 +220,17 @@ export const askQuestion = async (
     };
   }
 
-  const totalRevenue = filteredData.reduce((sum, record) => sum + record.total, 0);
   const totalUnits = filteredData.reduce((sum, record) => sum + record.qty, 0);
   const uniqueStores = new Set(filteredData.map(r => r.store)).size;
   const uniqueProducts = new Set(filteredData.map(r => r.product)).size;
+  const uniqueGroups = new Set(filteredData.filter(r => r.grupo).map(r => r.grupo)).size;
 
   const summary = {
     total_records: filteredData.length,
-    total_revenue: formatCurrency(totalRevenue),
     total_units: totalUnits,
     unique_stores: uniqueStores,
     unique_products: uniqueProducts,
+    unique_groups: uniqueGroups,
     date_range: {
       start: filteredData[0]?.date,
       end: filteredData[filteredData.length - 1]?.date

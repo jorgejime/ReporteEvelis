@@ -8,7 +8,7 @@ class SupabaseBackend {
     try {
       const { data, error } = await supabase
         .from(this.tableName)
-        .select('ean, store, date, product, qty, price, total')
+        .select('ean, store, date, grupo, product, qty, price, total')
         .order('date', { ascending: true });
 
       if (error) {
@@ -80,9 +80,11 @@ class SupabaseBackend {
           title,
           content,
           metrics_summary: {
-            totalRevenue: metrics.totalRevenue,
             totalUnits: metrics.totalUnits,
-            averageOrderValue: metrics.averageOrderValue
+            uniqueStores: metrics.uniqueStores,
+            uniqueProducts: metrics.uniqueProducts,
+            uniqueGroups: metrics.uniqueGroups,
+            averageUnitsPerDay: metrics.averageUnitsPerDay
           },
           date_range_start: metrics.dateRange.start,
           date_range_end: metrics.dateRange.end
@@ -374,6 +376,7 @@ class SupabaseBackend {
   async getFilteredSalesData(filters?: {
     store?: string;
     product?: string;
+    grupo?: string;
     startDate?: string;
     endDate?: string;
   }): Promise<SalesRecord[]> {
@@ -389,6 +392,10 @@ class SupabaseBackend {
 
       if (filters?.product) {
         query = query.ilike('product', `%${filters.product}%`);
+      }
+
+      if (filters?.grupo) {
+        query = query.ilike('grupo', `%${filters.grupo}%`);
       }
 
       if (filters?.startDate) {

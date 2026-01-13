@@ -2,8 +2,8 @@ import { GoogleGenAI } from "@google/genai";
 import { SalesMetrics } from "../types";
 
 const SYSTEM_INSTRUCTION = `
-Eres un experto Analista Financiero y de Operaciones Senior.
-Tu trabajo es analizar los datos de ventas resumidos (JSON) y generar un reporte ejecutivo profesional para la gerencia.
+Eres un experto Analista de Operaciones y Logística Senior.
+Tu trabajo es analizar los datos de CANTIDADES VENDIDAS (unidades) y generar un reporte ejecutivo profesional para la gerencia.
 
 Instrucciones de Formato:
 1. El idioma debe ser estrictamente **ESPAÑOL**.
@@ -14,26 +14,29 @@ Instrucciones de Formato:
 
 Estructura del Reporte:
 
-<h3>1. Resumen Ejecutivo Financiero (Para el CFO)</h3>
-<p>Analiza los ingresos totales, el ticket promedio y la salud financiera general basada en los datos.</p>
+<h3>1. Resumen Ejecutivo de Movimiento</h3>
+<p>Analiza las unidades totales vendidas, el promedio diario y la salud del movimiento de inventario.</p>
 <ul>
-  <li>Comenta sobre la concentración de ingresos (Top Tiendas y Productos).</li>
-  <li>Identifica tendencias de crecimiento o decrecimiento en la línea de tiempo.</li>
+  <li>Comenta sobre la concentración de ventas (Top Tiendas y Productos por cantidad).</li>
+  <li>Identifica tendencias de crecimiento o decrecimiento en las unidades vendidas.</li>
+  <li>Si hay datos de grupos, analiza cuáles grupos tienen mayor rotación.</li>
 </ul>
 
-<h3>2. Informe de Operaciones y Logística (Para el COO)</h3>
+<h3>2. Informe de Operaciones y Logística</h3>
 <p>Analiza el volumen de unidades y la presión sobre la cadena de suministro.</p>
 <ul>
   <li>Destaca las tiendas con mayor movimiento (prioridad de reabastecimiento).</li>
-  <li>Identifica los productos "estrella" que no pueden agotarse.</li>
+  <li>Identifica los productos "estrella" que no pueden agotarse por su alta rotación.</li>
+  <li>Analiza la distribución por grupos de productos si están disponibles.</li>
 </ul>
 
 <h3>3. Recomendaciones Estratégicas</h3>
 <ul>
-  <li>Provee 3 acciones concretas y breves para mejorar la rentabilidad o eficiencia operativa.</li>
+  <li>Provee 3 acciones concretas y breves para mejorar la eficiencia operativa y el flujo de inventario.</li>
 </ul>
 
-Tono: Profesional, corporativo, directo y basado exclusivamente en los datos provistos.
+Tono: Profesional, corporativo, directo y basado exclusivamente en los datos de CANTIDADES provistos.
+IMPORTANTE: NO menciones dinero, precios ni ingresos. Solo habla de CANTIDADES y UNIDADES vendidas.
 `;
 
 export const generateAIReport = async (metrics: SalesMetrics): Promise<string> => {
@@ -48,13 +51,16 @@ export const generateAIReport = async (metrics: SalesMetrics): Promise<string> =
   // Prepare a lightweight payload for the model
   const payload = {
     period: metrics.dateRange,
-    total_revenue: metrics.totalRevenue,
     total_units: metrics.totalUnits,
-    average_order_value: metrics.averageOrderValue,
-    top_5_stores_by_revenue: metrics.topStores.slice(0, 5),
-    top_5_products_by_qty: metrics.topProducts.slice(0, 5),
-    daily_trend_summary: metrics.timeline.length > 20 
-      ? "Data available but truncated for brevity" 
+    unique_stores: metrics.uniqueStores,
+    unique_products: metrics.uniqueProducts,
+    unique_groups: metrics.uniqueGroups,
+    average_units_per_day: Math.round(metrics.averageUnitsPerDay),
+    top_5_stores_by_units: metrics.topStores.slice(0, 5),
+    top_5_products_by_units: metrics.topProducts.slice(0, 5),
+    top_groups_by_units: metrics.topGroups?.slice(0, 5) || [],
+    daily_trend_summary: metrics.timeline.length > 20
+      ? "Data available but truncated for brevity"
       : metrics.timeline
   };
 

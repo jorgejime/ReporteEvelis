@@ -1,21 +1,23 @@
 export interface SalesRecord {
-  ean: string;
+  ean?: string;
   store: string;
   date: string;
+  grupo?: string;
   product: string;
   qty: number;
-  price: number;
-  total: number;
+  price?: number;
+  total?: number;
 }
 
 export interface SalesMetrics {
-  totalRevenue: number;
   totalUnits: number;
   uniqueStores: number;
   uniqueProducts: number;
-  averageOrderValue: number;
+  uniqueGroups: number;
+  averageUnitsPerDay: number;
   topStores: { name: string; value: number }[];
   topProducts: { name: string; value: number }[];
+  topGroups: { name: string; value: number }[];
   timeline: { date: string; value: number }[];
   dateRange: { start: string; end: string };
 }
