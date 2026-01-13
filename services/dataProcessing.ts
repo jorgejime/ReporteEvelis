@@ -32,13 +32,25 @@ const processRawRows = (headers: string[], rows: any[]): SalesRecord[] => {
 
     if (isNaN(qty) || qty === 0) return null;
 
+    const dateStr = String(date);
+    let year: number | undefined;
+
+    if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+      year = parseInt(dateStr.split('/')[2]);
+    } else if (dateStr.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+      year = parseInt(dateStr.split('-')[0]);
+    } else if (dateStr.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) {
+      year = parseInt(dateStr.split('/')[0]);
+    }
+
     const record: SalesRecord = {
       store: String(store),
-      date: String(date),
+      date: dateStr,
       product: String(product),
       qty
     };
 
+    if (year && !isNaN(year)) record.year = year;
     if (ean) record.ean = String(ean);
     if (grupo) record.grupo = String(grupo);
     if (price !== undefined && !isNaN(price)) {

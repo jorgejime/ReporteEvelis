@@ -8,7 +8,7 @@ class SupabaseBackend {
     try {
       const { data, error } = await supabase
         .from(this.tableName)
-        .select('ean, store, date, grupo, product, qty, price, total')
+        .select('ean, store, date, year, grupo, product, qty, price, total')
         .order('date', { ascending: true });
 
       if (error) {
@@ -19,6 +19,27 @@ class SupabaseBackend {
       return data || [];
     } catch (error) {
       console.error("Error fetching from backend:", error);
+      return [];
+    }
+  }
+
+  async getAvailableYears(): Promise<number[]> {
+    try {
+      const { data, error } = await supabase
+        .from(this.tableName)
+        .select('year')
+        .not('year', 'is', null)
+        .order('year', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching available years:", error);
+        return [];
+      }
+
+      const uniqueYears = [...new Set(data?.map(item => item.year) || [])];
+      return uniqueYears.filter((year): year is number => year !== null && year !== undefined);
+    } catch (error) {
+      console.error("Error getting available years:", error);
       return [];
     }
   }
@@ -379,6 +400,7 @@ class SupabaseBackend {
     grupo?: string;
     startDate?: string;
     endDate?: string;
+    year?: number;
   }): Promise<SalesRecord[]> {
     try {
       let query = supabase
@@ -396,6 +418,10 @@ class SupabaseBackend {
 
       if (filters?.grupo) {
         query = query.ilike('grupo', `%${filters.grupo}%`);
+      }
+
+      if (filters?.year) {
+        query = query.eq('year', filters.year);
       }
 
       if (filters?.startDate) {

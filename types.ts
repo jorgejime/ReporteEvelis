@@ -2,6 +2,7 @@ export interface SalesRecord {
   ean?: string;
   store: string;
   date: string;
+  year?: number;
   grupo?: string;
   product: string;
   qty: number;

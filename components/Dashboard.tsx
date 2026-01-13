@@ -8,16 +8,20 @@ import {
 } from 'lucide-react';
 import { SalesMetrics } from '../types';
 import KPICard from './KPICard';
+import YearSelector from './YearSelector';
 
 interface DashboardProps {
   metrics: SalesMetrics;
   hasData: boolean;
   onClearData: () => void;
+  availableYears: number[];
+  selectedYear: number | null;
+  onYearChange: (year: number | null) => void;
 }
 
 const COLORS = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
-const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData }) => {
+const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, availableYears, selectedYear, onYearChange }) => {
   if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in fade-in duration-500">
@@ -38,25 +42,36 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData }) 
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end pb-6 border-b border-slate-200 gap-4">
-        <div>
-          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
-            Resumen Ejecutivo
-          </h2>
-          <div className="flex items-center gap-2 text-slate-600">
-            <Calendar className="w-4 h-4" />
-            <p className="text-sm font-medium">
-              Periodo: {metrics.dateRange.start} - {metrics.dateRange.end}
-            </p>
+      <div className="flex flex-col gap-6 pb-6 border-b border-slate-200">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+          <div>
+            <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
+              Resumen Ejecutivo
+            </h2>
+            <div className="flex items-center gap-2 text-slate-600">
+              <Calendar className="w-4 h-4" />
+              <p className="text-sm font-medium">
+                Periodo: {metrics.dateRange.start} - {metrics.dateRange.end}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={onClearData}
+            className="text-red-600 hover:bg-red-50 hover:text-red-700 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 transition-all duration-200 border-2 border-red-200 hover:border-red-300 shadow-sm hover:shadow-md group"
+          >
+            <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            <span>Limpiar Datos</span>
+          </button>
         </div>
-        <button
-          onClick={onClearData}
-          className="text-red-600 hover:bg-red-50 hover:text-red-700 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 transition-all duration-200 border-2 border-red-200 hover:border-red-300 shadow-sm hover:shadow-md group"
-        >
-          <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
-          <span>Limpiar Datos</span>
-        </button>
+        {availableYears.length > 0 && (
+          <div className="flex items-center gap-4">
+            <YearSelector
+              availableYears={availableYears}
+              selectedYear={selectedYear}
+              onYearChange={onYearChange}
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

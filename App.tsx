@@ -16,6 +16,7 @@ import { Layers, Database, Server, RefreshCw, Upload, CloudUpload } from 'lucide
 
 export default function App() {
   const [salesData, setSalesData] = useState<SalesRecord[]>([]);
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
@@ -75,8 +76,34 @@ export default function App() {
     }
   }, []);
 
+  useEffect(() => {
+    const savedYear = localStorage.getItem('selectedYear');
+    if (savedYear && savedYear !== 'null') {
+      setSelectedYear(parseInt(savedYear));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('selectedYear', selectedYear?.toString() || 'null');
+  }, [selectedYear]);
+
+  const availableYears = useMemo(() => {
+    const years = salesData
+      .map(record => record.year)
+      .filter((year): year is number => year !== undefined && year !== null);
+    return [...new Set(years)].sort((a, b) => b - a);
+  }, [salesData]);
+
+  const filteredSalesData = useMemo(() => {
+    if (selectedYear === null) {
+      return salesData;
+    }
+    return salesData.filter(record => record.year === selectedYear);
+  }, [salesData, selectedYear]);
+
   const metrics: SalesMetrics = useMemo(() => {
-    if (salesData.length === 0) {
+    const dataToAnalyze = filteredSalesData;
+    if (dataToAnalyze.length === 0) {
       return {
         totalUnits: 0,
         uniqueStores: 0,
@@ -91,13 +118,13 @@ export default function App() {
       };
     }
 
-    const totalUnits = salesData.reduce((acc, curr) => acc + curr.qty, 0);
-    const uniqueStores = new Set(salesData.map(d => d.store)).size;
-    const uniqueProducts = new Set(salesData.map(d => d.product)).size;
-    const uniqueGroups = new Set(salesData.filter(d => d.grupo).map(d => d.grupo)).size;
+    const totalUnits = dataToAnalyze.reduce((acc, curr) => acc + curr.qty, 0);
+    const uniqueStores = new Set(dataToAnalyze.map(d => d.store)).size;
+    const uniqueProducts = new Set(dataToAnalyze.map(d => d.product)).size;
+    const uniqueGroups = new Set(dataToAnalyze.filter(d => d.grupo).map(d => d.grupo)).size;
 
     const storeMap: Record<string, number> = {};
-    salesData.forEach(d => {
+    dataToAnalyze.forEach(d => {
       storeMap[d.store] = (storeMap[d.store] || 0) + d.qty;
     });
     const topStores = Object.entries(storeMap)
@@ -105,7 +132,7 @@ export default function App() {
       .sort((a, b) => b.value - a.value);
 
     const productMap: Record<string, number> = {};
-    salesData.forEach(d => {
+    dataToAnalyze.forEach(d => {
       const name = d.product.length > 25 ? d.product.substring(0, 25) + '...' : d.product;
       productMap[name] = (productMap[name] || 0) + d.qty;
     });
@@ -114,7 +141,7 @@ export default function App() {
       .sort((a, b) => b.value - a.value);
 
     const groupMap: Record<string, number> = {};
-    salesData.forEach(d => {
+    dataToAnalyze.forEach(d => {
       if (d.grupo) {
         groupMap[d.grupo] = (groupMap[d.grupo] || 0) + d.qty;
       }
@@ -125,7 +152,7 @@ export default function App() {
 
     const dateMap: Record<string, number> = {};
     const dates: string[] = [];
-    salesData.forEach(d => {
+    dataToAnalyze.forEach(d => {
       if (!dateMap[d.date]) {
         dateMap[d.date] = 0;
         dates.push(d.date);
@@ -157,7 +184,7 @@ export default function App() {
       timeline,
       dateRange
     };
-  }, [salesData]);
+  }, [filteredSalesData]);
 
   const processFiles = async (files: File[]) => {
     if (files.length === 0) return;
@@ -307,6 +334,9 @@ export default function App() {
             metrics={metrics}
             hasData={salesData.length > 0}
             onClearData={clearData}
+            availableYears={availableYears}
+            selectedYear={selectedYear}
+            onYearChange={setSelectedYear}
           />
         )}
 
@@ -424,6 +454,7 @@ export default function App() {
               <table className="w-full text-sm text-left text-slate-600">
                 <thead className="text-xs text-slate-500 uppercase bg-gradient-to-r from-slate-100 to-blue-50 sticky top-0 z-10 shadow-sm">
                   <tr>
+                    <th className="px-6 py-4 font-bold">Año</th>
                     <th className="px-6 py-4 font-bold">Fecha</th>
                     <th className="px-6 py-4 font-bold">Tienda</th>
                     <th className="px-6 py-4 font-bold">Grupo</th>
@@ -434,6 +465,15 @@ export default function App() {
                 <tbody className="divide-y divide-slate-100">
                   {salesData.slice(0, 200).map((row, idx) => (
                     <tr key={idx} className="bg-white hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent transition-all duration-200">
+                      <td className="px-6 py-3 whitespace-nowrap">
+                        {row.year ? (
+                          <span className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-3 py-1 rounded-lg font-bold text-sm shadow-sm">
+                            {row.year}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
+                      </td>
                       <td className="px-6 py-3 whitespace-nowrap font-medium text-slate-700">{row.date}</td>
                       <td className="px-6 py-3 font-bold text-slate-800">{row.store}</td>
                       <td className="px-6 py-3 text-sm">
@@ -451,7 +491,7 @@ export default function App() {
                   ))}
                   {salesData.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-6 py-24 text-center">
+                      <td colSpan={6} className="px-6 py-24 text-center">
                         <Database className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-400 text-lg font-medium">La base de datos está vacía.</p>
                         <p className="text-slate-400 text-sm mt-2">Sube archivos para empezar</p>
