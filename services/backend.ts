@@ -242,6 +242,176 @@ class SupabaseBackend {
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
     return hashHex;
   }
+
+  async createChatConversation(title: string = 'Nueva conversación'): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .insert({ title })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error("Error creating chat conversation:", error);
+        return null;
+      }
+
+      return data.id;
+    } catch (error) {
+      console.error("Error creating conversation:", error);
+      return null;
+    }
+  }
+
+  async saveChatMessage(
+    conversationId: string,
+    role: 'user' | 'assistant',
+    content: string,
+    chartData?: any,
+    metadata?: any
+  ): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_messages')
+        .insert({
+          conversation_id: conversationId,
+          role,
+          content,
+          chart_data: chartData || null,
+          metadata: metadata || {}
+        });
+
+      if (error) {
+        console.error("Error saving chat message:", error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error saving message:", error);
+      return false;
+    }
+  }
+
+  async getChatConversations(): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_conversations')
+        .select('*')
+        .order('saved', { ascending: false })
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching chat conversations:", error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      return [];
+    }
+  }
+
+  async getChatMessages(conversationId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error("Error fetching chat messages:", error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      return [];
+    }
+  }
+
+  async deleteChatConversation(conversationId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_conversations')
+        .delete()
+        .eq('id', conversationId);
+
+      if (error) {
+        console.error("Error deleting chat conversation:", error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
+      return false;
+    }
+  }
+
+  async markConversationAsSaved(conversationId: string, title: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('chat_conversations')
+        .update({ saved: true, title })
+        .eq('id', conversationId);
+
+      if (error) {
+        console.error("Error marking conversation as saved:", error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error updating conversation:", error);
+      return false;
+    }
+  }
+
+  async getFilteredSalesData(filters?: {
+    store?: string;
+    product?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<SalesRecord[]> {
+    try {
+      let query = supabase
+        .from(this.tableName)
+        .select('*')
+        .order('date', { ascending: true });
+
+      if (filters?.store) {
+        query = query.ilike('store', `%${filters.store}%`);
+      }
+
+      if (filters?.product) {
+        query = query.ilike('product', `%${filters.product}%`);
+      }
+
+      if (filters?.startDate) {
+        query = query.gte('date', filters.startDate);
+      }
+
+      if (filters?.endDate) {
+        query = query.lte('date', filters.endDate);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error("Error fetching filtered sales data:", error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error getting filtered data:", error);
+      return [];
+    }
+  }
 }
 
 export const backend = new SupabaseBackend();

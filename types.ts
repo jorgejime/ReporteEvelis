@@ -39,10 +39,29 @@ export interface UploadedFile {
   file_size: number;
 }
 
+export interface ChatConversation {
+  id: string;
+  title: string;
+  saved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  chart_data: any;
+  metadata: any;
+  created_at: string;
+}
+
 export enum AppTab {
   DASHBOARD = 'dashboard',
   UPLOAD = 'upload',
   DATA = 'data',
   AI_REPORT = 'ai_report',
+  CHAT_AI = 'chat_ai',
   REPORTS_HISTORY = 'reports_history'
 }

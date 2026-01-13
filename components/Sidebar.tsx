@@ -6,7 +6,8 @@ import {
   Database,
   Bot,
   Sparkles,
-  FileText
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { AppTab } from '../types';
 
@@ -19,6 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: AppTab.AI_REPORT, label: 'Reporte IA', icon: Bot },
+    { id: AppTab.CHAT_AI, label: 'Chat IA', icon: MessageSquare },
     { id: AppTab.REPORTS_HISTORY, label: 'Historial', icon: FileText },
     { id: AppTab.UPLOAD, label: 'Cargar Datos', icon: UploadCloud },
     { id: AppTab.DATA, label: 'Datos Brutos', icon: Database },
@@ -64,6 +66,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
               {item.id === AppTab.AI_REPORT && (
                 <span className="ml-auto bg-gradient-to-r from-emerald-500 to-emerald-600 text-[10px] font-bold px-2 py-1 rounded-md text-white shadow-lg shadow-emerald-500/50 relative z-10">
                   IA
+                </span>
+              )}
+              {item.id === AppTab.CHAT_AI && (
+                <span className="ml-auto bg-gradient-to-r from-purple-500 to-pink-500 text-[10px] font-bold px-2 py-1 rounded-md text-white shadow-lg shadow-purple-500/50 relative z-10">
+                  NUEVO
                 </span>
               )}
             </button>

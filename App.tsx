@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import AIReport from './components/AIReport';
+import ChatAI from './components/ChatAI';
 import { ReportsHistory } from './components/ReportsHistory';
 import { UploadedFilesList } from './components/UploadedFilesList';
 import ToastContainer from './components/ToastContainer';
@@ -308,6 +309,10 @@ export default function App() {
 
         {activeTab === AppTab.REPORTS_HISTORY && (
           <ReportsHistory onShowToast={showToast} />
+        )}
+
+        {activeTab === AppTab.CHAT_AI && (
+          <ChatAI hasData={salesData.length > 0} onShowToast={showToast} />
         )}
 
         {activeTab === AppTab.UPLOAD && (
