@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import AIReport from './components/AIReport';
+import { ReportsHistory } from './components/ReportsHistory';
 import ToastContainer from './components/ToastContainer';
 import { ToastData } from './components/Toast';
 import { SalesRecord, SalesMetrics, AppTab } from './types';
@@ -35,6 +36,10 @@ export default function App() {
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    addToast(type, message);
   };
 
   useEffect(() => {
@@ -277,7 +282,11 @@ export default function App() {
         )}
 
         {activeTab === AppTab.AI_REPORT && (
-          <AIReport metrics={metrics} hasData={salesData.length > 0} />
+          <AIReport metrics={metrics} hasData={salesData.length > 0} onShowToast={showToast} />
+        )}
+
+        {activeTab === AppTab.REPORTS_HISTORY && (
+          <ReportsHistory onShowToast={showToast} />
         )}
 
         {activeTab === AppTab.UPLOAD && (

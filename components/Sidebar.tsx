@@ -5,7 +5,8 @@ import {
   UploadCloud,
   Database,
   Bot,
-  Sparkles
+  Sparkles,
+  FileText
 } from 'lucide-react';
 import { AppTab } from '../types';
 
@@ -18,6 +19,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
     { id: AppTab.AI_REPORT, label: 'Reporte IA', icon: Bot },
+    { id: AppTab.REPORTS_HISTORY, label: 'Historial', icon: FileText },
     { id: AppTab.UPLOAD, label: 'Cargar Datos', icon: UploadCloud },
     { id: AppTab.DATA, label: 'Datos Brutos', icon: Database },
   ];

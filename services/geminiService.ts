@@ -37,11 +37,13 @@ Tono: Profesional, corporativo, directo y basado exclusivamente en los datos pro
 `;
 
 export const generateAIReport = async (metrics: SalesMetrics): Promise<string> => {
-  if (!process.env.API_KEY) {
-    throw new Error("API Key is missing.");
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+  if (!apiKey) {
+    throw new Error("API Key de Gemini no configurada. Por favor agrega VITE_GEMINI_API_KEY en el archivo .env");
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
 
   // Prepare a lightweight payload for the model
   const payload = {

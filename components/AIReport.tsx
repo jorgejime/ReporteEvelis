@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Bot, Sparkles, FileText, Loader2, AlertTriangle } from 'lucide-react';
+import { Bot, Sparkles, FileText, Loader2, AlertTriangle, Printer, Download } from 'lucide-react';
 import { SalesMetrics } from '../types';
 import { generateAIReport } from '../services/geminiService';
+import { backend } from '../services/backend';
 
 interface AIReportProps {
   metrics: SalesMetrics;
   hasData: boolean;
+  onShowToast: (message: string, type: 'success' | 'error' | 'info') => void;
 }
 
-const AIReport: React.FC<AIReportProps> = ({ metrics, hasData }) => {
+const AIReport: React.FC<AIReportProps> = ({ metrics, hasData, onShowToast }) => {
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,11 +21,80 @@ const AIReport: React.FC<AIReportProps> = ({ metrics, hasData }) => {
     try {
       const result = await generateAIReport(metrics);
       setReport(result);
+
+      const savedReport = await backend.saveAIReport(result, metrics);
+      if (savedReport) {
+        onShowToast('Reporte generado y guardado exitosamente', 'success');
+      }
     } catch (err: any) {
       setError(err.message || "Error generating report.");
+      onShowToast('Error al generar el reporte', 'error');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handlePrint = () => {
+    if (!report) return;
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      onShowToast('Por favor permite ventanas emergentes para imprimir', 'error');
+      return;
+    }
+
+    const title = `Reporte ${metrics.dateRange.start} - ${metrics.dateRange.end}`;
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${title}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            h3 {
+              color: #1e3a8a;
+              margin-top: 20px;
+            }
+            p, li {
+              line-height: 1.6;
+            }
+            .header {
+              border-bottom: 2px solid #1e3a8a;
+              padding-bottom: 10px;
+              margin-bottom: 20px;
+            }
+            @media print {
+              body { padding: 10px; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${title}</h1>
+            <p><strong>Fecha de generación:</strong> ${new Date().toLocaleString('es-ES')}</p>
+          </div>
+          ${report}
+        </body>
+      </html>
+    `);
+
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 250);
+  };
+
+  const handleDownloadPDF = () => {
+    if (!report) return;
+    onShowToast('Para descargar PDF, usa el botón de imprimir y selecciona "Guardar como PDF"', 'info');
+    handlePrint();
   };
 
   if (!hasData) {
@@ -122,12 +193,28 @@ const AIReport: React.FC<AIReportProps> = ({ metrics, hasData }) => {
             <p className="text-sm text-slate-500 font-medium">
               Generado con inteligencia artificial
             </p>
-            <button
-              onClick={() => setReport(null)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-bold hover:bg-blue-50 px-4 py-2 rounded-xl transition-all border-2 border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md"
-            >
-              Generar nuevo análisis
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <Printer className="w-4 h-4" />
+                Imprimir
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              >
+                <Download className="w-4 h-4" />
+                PDF
+              </button>
+              <button
+                onClick={() => setReport(null)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-bold hover:bg-blue-50 px-4 py-2 rounded-xl transition-all border-2 border-blue-200 hover:border-blue-300 shadow-sm hover:shadow-md"
+              >
+                Generar nuevo análisis
+              </button>
+            </div>
           </div>
         </div>
       )}

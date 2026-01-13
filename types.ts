@@ -20,9 +20,20 @@ export interface SalesMetrics {
   dateRange: { start: string; end: string };
 }
 
+export interface AIReport {
+  id: string;
+  title: string;
+  content: string;
+  metrics_summary: any;
+  created_at: string;
+  date_range_start: string | null;
+  date_range_end: string | null;
+}
+
 export enum AppTab {
   DASHBOARD = 'dashboard',
   UPLOAD = 'upload',
   DATA = 'data',
-  AI_REPORT = 'ai_report'
+  AI_REPORT = 'ai_report',
+  REPORTS_HISTORY = 'reports_history'
 }

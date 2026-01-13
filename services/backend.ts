@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { SalesRecord } from '../types';
+import { SalesRecord, AIReport, SalesMetrics } from '../types';
 
 class SupabaseBackend {
   private tableName = 'sales_records';
@@ -68,6 +68,76 @@ class SupabaseBackend {
     }
 
     return count || 0;
+  }
+
+  async saveAIReport(content: string, metrics: SalesMetrics): Promise<AIReport | null> {
+    try {
+      const title = `Reporte ${metrics.dateRange.start} - ${metrics.dateRange.end}`;
+
+      const { data, error } = await supabase
+        .from('ai_reports')
+        .insert({
+          title,
+          content,
+          metrics_summary: {
+            totalRevenue: metrics.totalRevenue,
+            totalUnits: metrics.totalUnits,
+            averageOrderValue: metrics.averageOrderValue
+          },
+          date_range_start: metrics.dateRange.start,
+          date_range_end: metrics.dateRange.end
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving AI report:", error);
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error saving report:", error);
+      return null;
+    }
+  }
+
+  async getAIReports(): Promise<AIReport[]> {
+    try {
+      const { data, error } = await supabase
+        .from('ai_reports')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching AI reports:", error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      return [];
+    }
+  }
+
+  async deleteAIReport(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('ai_reports')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        console.error("Error deleting AI report:", error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting report:", error);
+      return false;
+    }
   }
 }
 
