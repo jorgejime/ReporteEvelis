@@ -3,6 +3,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
 import AIReport from './components/AIReport';
 import { ReportsHistory } from './components/ReportsHistory';
+import { UploadedFilesList } from './components/UploadedFilesList';
 import ToastContainer from './components/ToastContainer';
 import { ToastData } from './components/Toast';
 import { SalesRecord, SalesMetrics, AppTab } from './types';
@@ -155,28 +156,43 @@ export default function App() {
     setLoading(true);
 
     try {
-      const results = await Promise.allSettled(files.map(processSingleFile));
-
-      let newDataBatch: SalesRecord[] = [];
+      let totalRecordsAdded = 0;
       let errors: string[] = [];
+      let successCount = 0;
 
-      results.forEach(result => {
-        if (result.status === 'fulfilled') {
-          newDataBatch = [...newDataBatch, ...result.value.data];
-        } else {
-          errors.push((result.reason as any).fileName || 'Archivo desconocido');
+      for (const file of files) {
+        try {
+          const fileHash = await backend.generateFileHash(file);
+
+          const result = await processSingleFile(file);
+
+          if (result.data.length > 0) {
+            const fileId = await backend.createFileRecord(
+              file.name,
+              fileHash,
+              file.size
+            );
+
+            if (fileId) {
+              await backend.addBatchWithFileId(result.data, fileId);
+              totalRecordsAdded += result.data.length;
+              successCount++;
+            }
+          }
+        } catch (err: any) {
+          errors.push(file.name);
+          console.error(`Error processing file ${file.name}:`, err);
         }
-      });
+      }
 
-      if (newDataBatch.length > 0) {
-        await backend.addBatch(newDataBatch);
-        const allData = await backend.getAll();
-        setSalesData(allData);
+      const allData = await backend.getAll();
+      setSalesData(allData);
 
+      if (successCount > 0) {
         if (errors.length > 0) {
-          addToast('warning', `${newDataBatch.length} registros guardados. Fallaron: ${errors.length} archivos.`);
+          addToast('warning', `${successCount} archivo(s) subido(s) con ${totalRecordsAdded} registros. Fallaron: ${errors.length} archivo(s).`);
         } else {
-          addToast('success', `${newDataBatch.length} registros guardados exitosamente en Supabase Cloud.`);
+          addToast('success', `${successCount} archivo(s) subido(s) exitosamente con ${totalRecordsAdded} registros.`);
           setActiveTab(AppTab.DASHBOARD);
         }
       } else if (errors.length > 0) {
@@ -242,6 +258,11 @@ export default function App() {
         setLoading(false);
       }
     }
+  };
+
+  const handleFilesChange = async () => {
+    const allData = await backend.getAll();
+    setSalesData(allData);
   };
 
   if (initializing) {
@@ -361,6 +382,10 @@ export default function App() {
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="mt-8 bg-white/80 backdrop-blur-sm p-8 rounded-3xl shadow-2xl border border-slate-200/50">
+              <UploadedFilesList onShowToast={showToast} onFilesChange={handleFilesChange} />
             </div>
           </div>
         )}

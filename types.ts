@@ -30,6 +30,15 @@ export interface AIReport {
   date_range_end: string | null;
 }
 
+export interface UploadedFile {
+  id: string;
+  filename: string;
+  records_count: number;
+  file_hash: string;
+  uploaded_at: string;
+  file_size: number;
+}
+
 export enum AppTab {
   DASHBOARD = 'dashboard',
   UPLOAD = 'upload',

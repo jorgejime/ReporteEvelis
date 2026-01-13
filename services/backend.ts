@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { SalesRecord, AIReport, SalesMetrics } from '../types';
+import { SalesRecord, AIReport, SalesMetrics, UploadedFile } from '../types';
 
 class SupabaseBackend {
   private tableName = 'sales_records';
@@ -138,6 +138,109 @@ class SupabaseBackend {
       console.error("Error deleting report:", error);
       return false;
     }
+  }
+
+  async createFileRecord(filename: string, fileHash: string, fileSize: number): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .insert({
+          filename,
+          file_hash: fileHash,
+          file_size: fileSize,
+          records_count: 0
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error("Error creating file record:", error);
+        return null;
+      }
+
+      return data.id;
+    } catch (error) {
+      console.error("Error creating file record:", error);
+      return null;
+    }
+  }
+
+  async addBatchWithFileId(records: SalesRecord[], fileId: string): Promise<void> {
+    if (records.length === 0) return;
+
+    const batchSize = 500;
+    const batches = [];
+
+    const recordsWithFileId = records.map(record => ({
+      ...record,
+      file_id: fileId
+    }));
+
+    for (let i = 0; i < recordsWithFileId.length; i += batchSize) {
+      batches.push(recordsWithFileId.slice(i, i + batchSize));
+    }
+
+    for (const batch of batches) {
+      const { error } = await supabase
+        .from(this.tableName)
+        .insert(batch);
+
+      if (error) {
+        console.error("Error inserting batch to Supabase:", error);
+        throw error;
+      }
+    }
+
+    await supabase
+      .from('uploaded_files')
+      .update({ records_count: records.length })
+      .eq('id', fileId);
+  }
+
+  async getUploadedFiles(): Promise<UploadedFile[]> {
+    try {
+      const { data, error } = await supabase
+        .from('uploaded_files')
+        .select('*')
+        .order('uploaded_at', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching uploaded files:", error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error fetching uploaded files:", error);
+      return [];
+    }
+  }
+
+  async deleteFile(fileId: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('uploaded_files')
+        .delete()
+        .eq('id', fileId);
+
+      if (error) {
+        console.error("Error deleting file:", error);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Error deleting file:", error);
+      return false;
+    }
+  }
+
+  async generateFileHash(file: File): Promise<string> {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
   }
 }
 
