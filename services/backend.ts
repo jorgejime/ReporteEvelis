@@ -1,72 +1,74 @@
-import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { supabase } from './supabaseClient';
 import { SalesRecord } from '../types';
 
-interface SodiDB extends DBSchema {
-  sales: {
-    key: number;
-    value: SalesRecord;
-  };
-}
+class SupabaseBackend {
+  private tableName = 'sales_records';
 
-const DB_NAME = 'SodiAnalyticsDB';
-const STORE_NAME = 'sales';
-const DB_VERSION = 1;
-
-class LocalBackend {
-  private dbPromise: Promise<IDBPDatabase<SodiDB>>;
-
-  constructor() {
-    this.dbPromise = openDB<SodiDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(STORE_NAME)) {
-          db.createObjectStore(STORE_NAME, { autoIncrement: true });
-        }
-      },
-    });
-  }
-
-  /**
-   * Obtiene todos los registros almacenados en la base de datos local.
-   */
   async getAll(): Promise<SalesRecord[]> {
     try {
-      const db = await this.dbPromise;
-      return await db.getAll(STORE_NAME);
+      const { data, error } = await supabase
+        .from(this.tableName)
+        .select('ean, store, date, product, qty, price, total')
+        .order('date', { ascending: true });
+
+      if (error) {
+        console.error("Error fetching from Supabase:", error);
+        throw error;
+      }
+
+      return data || [];
     } catch (error) {
       console.error("Error fetching from backend:", error);
       return [];
     }
   }
 
-  /**
-   * Guarda un lote de registros en la base de datos.
-   */
   async addBatch(records: SalesRecord[]): Promise<void> {
-    const db = await this.dbPromise;
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    
-    // Usamos Promise.all para insertar en paralelo (IndexedDB lo maneja eficientemente)
-    await Promise.all(records.map(record => store.add(record)));
-    await tx.done;
+    if (records.length === 0) return;
+
+    const batchSize = 500;
+    const batches = [];
+
+    for (let i = 0; i < records.length; i += batchSize) {
+      batches.push(records.slice(i, i + batchSize));
+    }
+
+    for (const batch of batches) {
+      const { error } = await supabase
+        .from(this.tableName)
+        .insert(batch);
+
+      if (error) {
+        console.error("Error inserting batch to Supabase:", error);
+        throw error;
+      }
+    }
   }
 
-  /**
-   * Elimina todos los registros de la base de datos.
-   */
   async clear(): Promise<void> {
-    const db = await this.dbPromise;
-    await db.clear(STORE_NAME);
+    const { error } = await supabase
+      .from(this.tableName)
+      .delete()
+      .neq('id', 0);
+
+    if (error) {
+      console.error("Error clearing Supabase table:", error);
+      throw error;
+    }
   }
 
-  /**
-   * Cuenta el total de registros (más rápido que traerlos todos).
-   */
   async count(): Promise<number> {
-    const db = await this.dbPromise;
-    return await db.count(STORE_NAME);
+    const { count, error } = await supabase
+      .from(this.tableName)
+      .select('*', { count: 'exact', head: true });
+
+    if (error) {
+      console.error("Error counting records:", error);
+      return 0;
+    }
+
+    return count || 0;
   }
 }
 
-// Singleton export
-export const backend = new LocalBackend();
+export const backend = new SupabaseBackend();

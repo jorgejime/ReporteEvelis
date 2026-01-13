@@ -1,10 +1,10 @@
 import React from 'react';
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  LineChart, Line, Cell 
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, Cell
 } from 'recharts';
-import { 
-  DollarSign, Package, MapPin, Filter, Calendar, Trash2 
+import {
+  DollarSign, Package, MapPin, Filter, Calendar, Trash2, TrendingUp
 } from 'lucide-react';
 import { SalesMetrics } from '../types';
 import KPICard from './KPICard';
@@ -24,125 +24,131 @@ const formatCurrency = (value: number) => {
   }).format(value);
 };
 
-const COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#d946ef', '#f43f5e'];
+const COLORS = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
 const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData }) => {
   if (!hasData) {
     return (
-      <div className="flex flex-col items-center justify-center h-[60vh] text-center">
-        <div className="bg-slate-100 p-6 rounded-full mb-4">
-          <Calendar className="w-12 h-12 text-slate-400" />
+      <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in fade-in duration-500">
+        <div className="bg-gradient-to-br from-slate-100 to-blue-100 p-8 rounded-3xl mb-6 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 group-hover:scale-110 transition-transform"></div>
+          <Calendar className="w-16 h-16 text-slate-400 relative z-10" />
         </div>
-        <h3 className="text-xl font-bold text-slate-700">Sin datos cargados</h3>
-        <p className="text-slate-500 mt-2 max-w-sm">Dirígete a la sección "Cargar Datos" para subir tus archivos Excel o CSV.</p>
+        <h3 className="text-2xl font-bold text-slate-700 mb-2">Sin datos cargados</h3>
+        <p className="text-slate-500 max-w-sm">Dirígete a la sección "Cargar Datos" para subir tus archivos Excel o CSV y comenzar a analizar.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex justify-between items-end pb-4 border-b border-slate-200">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end pb-6 border-b border-slate-200 gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-slate-800">Resumen Ejecutivo</h2>
-          <p className="text-slate-500 mt-1">
-            Periodo: {metrics.dateRange.start} - {metrics.dateRange.end}
-          </p>
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2">
+            Resumen Ejecutivo
+          </h2>
+          <div className="flex items-center gap-2 text-slate-600">
+            <Calendar className="w-4 h-4" />
+            <p className="text-sm font-medium">
+              Periodo: {metrics.dateRange.start} - {metrics.dateRange.end}
+            </p>
+          </div>
         </div>
-        <button 
-          onClick={onClearData} 
-          className="text-red-500 hover:bg-red-50 hover:text-red-700 px-4 py-2 rounded-lg text-sm font-medium flex items-center space-x-2 transition-colors"
+        <button
+          onClick={onClearData}
+          className="text-red-600 hover:bg-red-50 hover:text-red-700 px-5 py-2.5 rounded-xl text-sm font-bold flex items-center space-x-2 transition-all duration-200 border-2 border-red-200 hover:border-red-300 shadow-sm hover:shadow-md group"
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
           <span>Limpiar Datos</span>
         </button>
       </div>
 
-      {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard 
-          title="Ingresos Totales" 
-          value={formatCurrency(metrics.totalRevenue)} 
-          icon={DollarSign} 
-          colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600" 
+        <KPICard
+          title="Ingresos Totales"
+          value={formatCurrency(metrics.totalRevenue)}
+          icon={DollarSign}
+          colorClass="bg-gradient-to-br from-emerald-400 to-emerald-600"
         />
-        <KPICard 
-          title="Unidades Movidas" 
-          value={metrics.totalUnits.toLocaleString()} 
-          icon={Package} 
-          colorClass="bg-gradient-to-br from-blue-400 to-blue-600" 
+        <KPICard
+          title="Unidades Movidas"
+          value={metrics.totalUnits.toLocaleString()}
+          icon={Package}
+          colorClass="bg-gradient-to-br from-blue-400 to-blue-600"
         />
-        <KPICard 
-          title="Puntos de Venta" 
-          value={metrics.uniqueStores} 
-          icon={MapPin} 
-          colorClass="bg-gradient-to-br from-indigo-400 to-indigo-600" 
+        <KPICard
+          title="Puntos de Venta"
+          value={metrics.uniqueStores}
+          icon={MapPin}
+          colorClass="bg-gradient-to-br from-cyan-400 to-cyan-600"
         />
-        <KPICard 
-          title="Ticket Promedio" 
+        <KPICard
+          title="Ticket Promedio"
           value={formatCurrency(metrics.averageOrderValue)}
-          icon={Filter} 
-          colorClass="bg-gradient-to-br from-violet-400 to-violet-600" 
+          icon={Filter}
+          colorClass="bg-gradient-to-br from-amber-400 to-amber-600"
         />
       </div>
 
-      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Timeline */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 group">
           <h3 className="text-lg font-bold mb-6 flex items-center text-slate-800">
-            <Calendar className="w-5 h-5 mr-2 text-blue-500" />
+            <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-2 rounded-xl mr-3 shadow-md group-hover:scale-110 transition-transform">
+              <TrendingUp className="w-5 h-5 text-white" />
+            </div>
             Tendencia de Ventas (Ingresos)
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={metrics.timeline}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="date" tick={{fontSize: 11, fill: '#64748b'}} tickMargin={10} />
-                <YAxis 
-                  tickFormatter={(val) => `$${val/1000000}M`} 
-                  tick={{fontSize: 11, fill: '#64748b'}} 
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#64748b' }} tickMargin={10} />
+                <YAxis
+                  tickFormatter={(val) => `$${val / 1000000}M`}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(val: number) => [formatCurrency(val), 'Ventas']}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#3b82f6" 
-                  strokeWidth={3} 
-                  dot={{r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff'}} 
-                  activeDot={{r: 6}} 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }}
+                  activeDot={{ r: 6 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Top Stores */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 group">
           <h3 className="text-lg font-bold mb-6 flex items-center text-slate-800">
-            <MapPin className="w-5 h-5 mr-2 text-indigo-500" />
+            <div className="bg-gradient-to-br from-cyan-500 to-blue-500 p-2 rounded-xl mr-3 shadow-md group-hover:scale-110 transition-transform">
+              <MapPin className="w-5 h-5 text-white" />
+            </div>
             Top 5 Tiendas por Ingresos
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.topStores} layout="vertical" margin={{left: 20}}>
+              <BarChart data={metrics.topStores.slice(0, 5)} layout="vertical" margin={{ left: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
                 <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  width={140} 
-                  tick={{fontSize: 11, fill: '#475569'}} 
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={140}
+                  tick={{ fontSize: 11, fill: '#475569' }}
                 />
-                <Tooltip 
+                <Tooltip
                   formatter={(val: number) => [formatCurrency(val), 'Ingresos']}
-                  cursor={{fill: '#f8fafc'}}
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)' }}
                 />
-                <Bar dataKey="value" radius={[0, 6, 6, 0]} barSize={24}>
-                   {metrics.topStores.map((entry, index) => (
+                <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={28}>
+                  {metrics.topStores.slice(0, 5).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -152,30 +158,33 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData }) 
         </div>
       </div>
 
-       {/* Charts Row 2 */}
-       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Products */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg border border-slate-200/50 hover:shadow-xl transition-all duration-300 group">
           <h3 className="text-lg font-bold mb-6 flex items-center text-slate-800">
-            <Package className="w-5 h-5 mr-2 text-violet-500" />
+            <div className="bg-gradient-to-br from-emerald-500 to-green-500 p-2 rounded-xl mr-3 shadow-md group-hover:scale-110 transition-transform">
+              <Package className="w-5 h-5 text-white" />
+            </div>
             Top 5 Productos (Unidades)
           </h3>
           <div className="h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={metrics.topProducts}>
+              <BarChart data={metrics.topProducts.slice(0, 5)}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{fontSize: 10, fill: '#64748b'}} 
-                  interval={0} 
-                  angle={-15} 
-                  textAnchor="end" 
-                  height={60} 
+                <XAxis
+                  dataKey="name"
+                  tick={{ fontSize: 10, fill: '#64748b' }}
+                  interval={0}
+                  angle={-15}
+                  textAnchor="end"
+                  height={60}
                 />
-                <YAxis tick={{fontSize: 11, fill: '#64748b'}} />
-                <Tooltip cursor={{fill: '#f8fafc'}} />
-                <Bar dataKey="value" fill="#8b5cf6" radius={[6, 6, 0, 0]} barSize={40}>
-                   {metrics.topProducts.map((entry, index) => (
+                <YAxis tick={{ fontSize: 11, fill: '#64748b' }} />
+                <Tooltip
+                  cursor={{ fill: '#f8fafc' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.15)' }}
+                />
+                <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={50}>
+                  {metrics.topProducts.slice(0, 5).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Bar>
@@ -184,28 +193,56 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData }) 
           </div>
         </div>
 
-        {/* Insight Box */}
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 text-slate-300 p-8 rounded-2xl shadow-lg flex flex-col justify-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <DollarSign className="w-48 h-48 text-white" />
-            </div>
-            <h3 className="text-white text-xl font-bold mb-6 relative z-10">Insights Rápidos</h3>
-            <ul className="space-y-6 relative z-10">
-              <li className="flex items-start">
-                <div className="w-2 h-2 bg-emerald-400 rounded-full mt-2 mr-4 shadow-[0_0_10px_rgba(52,211,153,0.5)]"></div>
-                <div>
-                  <p className="text-xs uppercase font-semibold text-slate-500 mb-1">Concentración de Ventas</p>
-                  <p className="text-slate-200">La tienda líder aporta el <span className="text-white font-bold text-lg">{metrics.topStores[0] ? ((metrics.topStores[0].value / metrics.totalRevenue) * 100).toFixed(1) : 0}%</span> del total.</p>
-                </div>
-              </li>
-              <li className="flex items-start">
-                <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-4 shadow-[0_0_10px_rgba(96,165,250,0.5)]"></div>
-                <div>
-                  <p className="text-xs uppercase font-semibold text-slate-500 mb-1">Volumen de Datos</p>
-                  <p className="text-slate-200">Análisis basado en <span className="text-white font-bold text-lg">{metrics.totalUnits.toLocaleString()}</span> unidades en total.</p>
-                </div>
-              </li>
-            </ul>
+        <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 text-slate-300 p-8 rounded-2xl shadow-2xl flex flex-col justify-center relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <DollarSign className="w-48 h-48 text-white" />
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 group-hover:opacity-100 opacity-0 transition-opacity"></div>
+          <h3 className="text-white text-2xl font-bold mb-8 relative z-10 flex items-center">
+            <TrendingUp className="w-6 h-6 mr-3" />
+            Insights Rápidos
+          </h3>
+          <ul className="space-y-6 relative z-10">
+            <li className="flex items-start group/item">
+              <div className="w-3 h-3 bg-emerald-400 rounded-full mt-2 mr-4 shadow-lg shadow-emerald-500/50 group-hover/item:scale-125 transition-transform"></div>
+              <div>
+                <p className="text-xs uppercase font-bold text-emerald-400 mb-2 tracking-wider">Concentración de Ventas</p>
+                <p className="text-slate-200 leading-relaxed">
+                  La tienda líder aporta el{' '}
+                  <span className="text-white font-bold text-xl bg-emerald-500/20 px-2 py-0.5 rounded">
+                    {metrics.topStores[0] ? ((metrics.topStores[0].value / metrics.totalRevenue) * 100).toFixed(1) : 0}%
+                  </span>
+                  {' '}del total de ingresos.
+                </p>
+              </div>
+            </li>
+            <li className="flex items-start group/item">
+              <div className="w-3 h-3 bg-blue-400 rounded-full mt-2 mr-4 shadow-lg shadow-blue-500/50 group-hover/item:scale-125 transition-transform"></div>
+              <div>
+                <p className="text-xs uppercase font-bold text-blue-400 mb-2 tracking-wider">Volumen de Datos</p>
+                <p className="text-slate-200 leading-relaxed">
+                  Análisis basado en{' '}
+                  <span className="text-white font-bold text-xl bg-blue-500/20 px-2 py-0.5 rounded">
+                    {metrics.totalUnits.toLocaleString()}
+                  </span>
+                  {' '}unidades vendidas en total.
+                </p>
+              </div>
+            </li>
+            <li className="flex items-start group/item">
+              <div className="w-3 h-3 bg-cyan-400 rounded-full mt-2 mr-4 shadow-lg shadow-cyan-500/50 group-hover/item:scale-125 transition-transform"></div>
+              <div>
+                <p className="text-xs uppercase font-bold text-cyan-400 mb-2 tracking-wider">Productos Únicos</p>
+                <p className="text-slate-200 leading-relaxed">
+                  Trabajando con{' '}
+                  <span className="text-white font-bold text-xl bg-cyan-500/20 px-2 py-0.5 rounded">
+                    {metrics.uniqueProducts}
+                  </span>
+                  {' '}productos diferentes en tu catálogo.
+                </p>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
