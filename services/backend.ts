@@ -6,17 +6,33 @@ class SupabaseBackend {
 
   async getAll(): Promise<SalesRecord[]> {
     try {
-      const { data, error } = await supabase
-        .from(this.tableName)
-        .select('ean, store, date, year, grupo, product, qty, price, total')
-        .order('date', { ascending: true });
+      let allData: SalesRecord[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (error) {
-        console.error("Error fetching from Supabase:", error);
-        throw error;
+      while (hasMore) {
+        const { data, error } = await supabase
+          .from(this.tableName)
+          .select('ean, store, date, year, grupo, product, qty, price, total')
+          .order('date', { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          console.error("Error fetching from Supabase:", error);
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          allData = [...allData, ...data];
+          from += pageSize;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
       }
 
-      return data || [];
+      return allData;
     } catch (error) {
       console.error("Error fetching from backend:", error);
       return [];

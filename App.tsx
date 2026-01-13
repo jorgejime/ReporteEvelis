@@ -463,7 +463,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {salesData.slice(0, 200).map((row, idx) => (
+                  {salesData.map((row, idx) => (
                     <tr key={idx} className="bg-white hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-transparent transition-all duration-200">
                       <td className="px-6 py-3 whitespace-nowrap">
                         {row.year ? (
