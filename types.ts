@@ -8,6 +8,7 @@ export interface SalesRecord {
   qty: number;
   price?: number;
   total?: number;
+  extra_data?: Record<string, any>;
 }
 
 export interface ProductGroup {

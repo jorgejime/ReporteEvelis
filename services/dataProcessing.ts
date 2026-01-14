@@ -6,40 +6,73 @@ declare global {
   }
 }
 
+const COLUMN_MAPPINGS = {
+  ean: ['EAN', 'Código EAN del item', 'Codigo EAN', 'ean', 'código', 'codigo'],
+  store: ['TIENDA', 'Descripción', 'Punto de venta', 'Almacén', 'tienda', 'almacen', 'store', 'sucursal'],
+  date: ['FECHA', 'Fecha Inicial', 'Fecha', 'fecha', 'date', 'Fecha de venta'],
+  grupo: ['GRUPO', 'Grupo', 'grupo', 'category', 'categoria', 'categoría', 'Categoría'],
+  product: ['DESCRIPCION', 'Descripción del Ítem', 'Producto', 'producto', 'descripcion', 'product', 'item', 'Item'],
+  qty: ['Cantidad Vendida', 'Cantidad', 'cantidad', 'qty', 'quantity', 'unidades', 'Unidades'],
+  price: ['Precio neto al consumido sin impuestos', 'Precio', 'precio', 'price', 'valor', 'Valor']
+};
+
+const findColumnValue = (rowData: Record<string, any>, possibleNames: string[]): any => {
+  for (const name of possibleNames) {
+    if (rowData[name] !== undefined && rowData[name] !== null && rowData[name] !== '') {
+      return rowData[name];
+    }
+  }
+  return undefined;
+};
+
 const processRawRows = (headers: string[], rows: any[]): SalesRecord[] => {
-  return rows.map(row => {
+  console.log(`[PROCESSING] Procesando ${rows.length} filas con ${headers.length} columnas`);
+  console.log('[PROCESSING] Columnas detectadas:', headers);
+
+  const processedRecords: SalesRecord[] = [];
+  let skippedCount = 0;
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+
     let rowData: Record<string, any> = {};
     if (Array.isArray(row)) {
-      headers.forEach((h, i) => {
-        if (h) rowData[h] = row[i];
+      headers.forEach((h, idx) => {
+        if (h) rowData[h] = row[idx];
       });
     } else {
       rowData = row;
     }
 
-    const ean = rowData['EAN'] || rowData['Código EAN del item'];
-    const store = rowData['TIENDA'] || rowData['Descripción'] || rowData['Punto de venta'] || rowData['Almacén'];
-    const date = rowData['FECHA'] || rowData['Fecha Inicial'] || rowData['Fecha'];
-    const grupo = rowData['GRUPO'] || rowData['Grupo'];
-    const product = rowData['DESCRIPCION'] || rowData['Descripción del Ítem'] || rowData['Producto'];
-    const qtyRaw = rowData['Cantidad Vendida'] || rowData['Cantidad'];
-    const priceRaw = rowData['Precio neto al consumido sin impuestos'] || rowData['Precio'];
+    const ean = findColumnValue(rowData, COLUMN_MAPPINGS.ean);
+    const store = findColumnValue(rowData, COLUMN_MAPPINGS.store);
+    const date = findColumnValue(rowData, COLUMN_MAPPINGS.date);
+    const grupo = findColumnValue(rowData, COLUMN_MAPPINGS.grupo);
+    const product = findColumnValue(rowData, COLUMN_MAPPINGS.product);
+    const qtyRaw = findColumnValue(rowData, COLUMN_MAPPINGS.qty);
+    const priceRaw = findColumnValue(rowData, COLUMN_MAPPINGS.price);
 
-    if (!product || !store) return null;
+    if (!product || !store) {
+      skippedCount++;
+      continue;
+    }
 
-    const qty = typeof qtyRaw === 'number' ? qtyRaw : parseInt(String(qtyRaw).replace(/,/g, '') || '0');
-    const price = priceRaw ? (typeof priceRaw === 'number' ? priceRaw : parseInt(String(priceRaw).replace(/,/g, '') || '0')) : undefined;
+    const qty = typeof qtyRaw === 'number' ? qtyRaw : parseInt(String(qtyRaw).replace(/,/g, '').replace(/\./g, '') || '0');
+    const price = priceRaw ? (typeof priceRaw === 'number' ? priceRaw : parseFloat(String(priceRaw).replace(/,/g, '') || '0')) : undefined;
 
-    if (isNaN(qty) || qty === 0) return null;
+    if (isNaN(qty) || qty === 0) {
+      skippedCount++;
+      continue;
+    }
 
-    const dateStr = String(date);
+    const dateStr = String(date || '');
     let year: number | undefined;
 
-    if (dateStr.match(/^\d{1,2}\/\d{1,2}\/\d{4}$/)) {
+    if (dateStr.match(/^\d{1,2}\/\d{1,2}\/(\d{4})$/)) {
       year = parseInt(dateStr.split('/')[2]);
-    } else if (dateStr.match(/^\d{4}-\d{1,2}-\d{1,2}$/)) {
+    } else if (dateStr.match(/^(\d{4})-\d{1,2}-\d{1,2}$/)) {
       year = parseInt(dateStr.split('-')[0]);
-    } else if (dateStr.match(/^\d{4}\/\d{1,2}\/\d{1,2}$/)) {
+    } else if (dateStr.match(/^(\d{4})\/\d{1,2}\/\d{1,2}$/)) {
       year = parseInt(dateStr.split('/')[0]);
     }
 
@@ -58,8 +91,11 @@ const processRawRows = (headers: string[], rows: any[]): SalesRecord[] => {
       record.total = qty * price;
     }
 
-    return record;
-  }).filter((item): item is SalesRecord => item !== null && item.qty > 0);
+    processedRecords.push(record);
+  }
+
+  console.log(`[PROCESSING] Procesados: ${processedRecords.length} registros válidos, ${skippedCount} omitidos`);
+  return processedRecords;
 };
 
 const parseCSV = (csvText: string): SalesRecord[] => {

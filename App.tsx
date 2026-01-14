@@ -22,6 +22,7 @@ export default function App() {
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
   const [initProgress, setInitProgress] = useState<string>('Conectando...');
@@ -148,6 +149,7 @@ export default function App() {
   const processFiles = async (files: File[]) => {
     if (files.length === 0) return;
     setLoading(true);
+    setUploadProgress(null);
 
     try {
       let totalRecordsAdded = 0;
@@ -156,9 +158,15 @@ export default function App() {
 
       for (const file of files) {
         try {
+          console.log(`[UPLOAD] Procesando archivo: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+          setUploadProgress({ current: 0, total: 100, fileName: file.name });
+
           const fileHash = await backend.generateFileHash(file);
+          setUploadProgress({ current: 10, total: 100, fileName: file.name });
 
           const result = await processSingleFile(file);
+          console.log(`[UPLOAD] Archivo procesado: ${result.data.length} registros encontrados`);
+          setUploadProgress({ current: 30, total: result.data.length, fileName: file.name });
 
           if (result.data.length > 0) {
             const fileId = await backend.createFileRecord(
@@ -168,7 +176,13 @@ export default function App() {
             );
 
             if (fileId) {
-              await backend.addBatchWithFileId(result.data, fileId);
+              await backend.addBatchWithFileId(result.data, fileId, (current, total) => {
+                setUploadProgress({
+                  current: Math.min(current, total),
+                  total,
+                  fileName: file.name
+                });
+              });
               totalRecordsAdded += result.data.length;
               successCount++;
             }
@@ -179,6 +193,7 @@ export default function App() {
         }
       }
 
+      setUploadProgress(null);
       const allData = await backend.getAll();
       setSalesData(allData);
 
@@ -198,6 +213,7 @@ export default function App() {
       addToast('error', 'Error crítico al guardar en base de datos cloud.');
     } finally {
       setLoading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -398,12 +414,33 @@ export default function App() {
               </div>
 
               {loading && (
-                <div className="mt-6 flex justify-center items-center">
-                  <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-4 px-8 rounded-xl animate-pulse shadow-lg">
-                    <div className="flex items-center gap-3">
-                      <RefreshCw className="h-6 w-6 animate-spin" />
-                      <span className="font-bold text-lg">Guardando en Supabase Cloud...</span>
+                <div className="mt-6 space-y-4">
+                  <div className="bg-white p-6 rounded-xl shadow-lg border border-slate-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <RefreshCw className="h-6 w-6 animate-spin text-blue-600" />
+                      <span className="font-bold text-lg text-slate-800">
+                        {uploadProgress ? `Guardando: ${uploadProgress.fileName}` : 'Procesando archivo...'}
+                      </span>
                     </div>
+                    {uploadProgress && (
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm text-slate-600">
+                          <span>Progreso</span>
+                          <span className="font-semibold">
+                            {uploadProgress.current.toLocaleString()} / {uploadProgress.total.toLocaleString()} registros
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+                          <div
+                            className="bg-gradient-to-r from-blue-500 to-cyan-500 h-3 rounded-full transition-all duration-300 shadow-lg"
+                            style={{ width: `${Math.min((uploadProgress.current / uploadProgress.total) * 100, 100)}%` }}
+                          ></div>
+                        </div>
+                        <p className="text-xs text-slate-500 text-center">
+                          {Math.round((uploadProgress.current / uploadProgress.total) * 100)}% completado
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

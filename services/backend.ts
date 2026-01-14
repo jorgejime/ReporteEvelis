@@ -8,7 +8,7 @@ class SupabaseBackend {
     try {
       const { data, error } = await supabase
         .from(this.tableName)
-        .select('ean, store, date, year, grupo, product, qty, price, total')
+        .select('ean, store, date, year, grupo, product, qty, price, total, extra_data')
         .order('date', { ascending: true });
 
       if (error) {
@@ -44,17 +44,20 @@ class SupabaseBackend {
     }
   }
 
-  async addBatch(records: SalesRecord[]): Promise<void> {
+  async addBatch(records: SalesRecord[], onProgress?: (current: number, total: number) => void): Promise<void> {
     if (records.length === 0) return;
 
-    const batchSize = 500;
+    const batchSize = 1000;
     const batches = [];
 
     for (let i = 0; i < records.length; i += batchSize) {
       batches.push(records.slice(i, i + batchSize));
     }
 
-    for (const batch of batches) {
+    console.log(`[BACKEND] Insertando ${records.length} registros en ${batches.length} lotes de máximo ${batchSize}`);
+
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
       const { error } = await supabase
         .from(this.tableName)
         .insert(batch);
@@ -63,7 +66,15 @@ class SupabaseBackend {
         console.error("Error inserting batch to Supabase:", error);
         throw error;
       }
+
+      if (onProgress) {
+        onProgress((i + 1) * batchSize, records.length);
+      }
+
+      console.log(`[BACKEND] Lote ${i + 1}/${batches.length} completado (${batch.length} registros)`);
     }
+
+    console.log(`[BACKEND] Inserción completada: ${records.length} registros`);
   }
 
   async clear(): Promise<void> {
@@ -188,10 +199,10 @@ class SupabaseBackend {
     }
   }
 
-  async addBatchWithFileId(records: SalesRecord[], fileId: string): Promise<void> {
+  async addBatchWithFileId(records: SalesRecord[], fileId: string, onProgress?: (current: number, total: number) => void): Promise<void> {
     if (records.length === 0) return;
 
-    const batchSize = 500;
+    const batchSize = 1000;
     const batches = [];
 
     const recordsWithFileId = records.map(record => ({
@@ -203,7 +214,10 @@ class SupabaseBackend {
       batches.push(recordsWithFileId.slice(i, i + batchSize));
     }
 
-    for (const batch of batches) {
+    console.log(`[BACKEND] Insertando ${records.length} registros con file_id en ${batches.length} lotes`);
+
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
       const { error } = await supabase
         .from(this.tableName)
         .insert(batch);
@@ -212,12 +226,20 @@ class SupabaseBackend {
         console.error("Error inserting batch to Supabase:", error);
         throw error;
       }
+
+      if (onProgress) {
+        onProgress((i + 1) * batchSize, records.length);
+      }
+
+      console.log(`[BACKEND] Lote ${i + 1}/${batches.length} completado (${batch.length} registros)`);
     }
 
     await supabase
       .from('uploaded_files')
       .update({ records_count: records.length })
       .eq('id', fileId);
+
+    console.log(`[BACKEND] Inserción con file_id completada: ${records.length} registros`);
   }
 
   async getUploadedFiles(): Promise<UploadedFile[]> {
