@@ -1,7 +1,7 @@
 import { SalesRecord, SalesMetrics, GroupMetrics, MonthMetrics, StoreMetrics, ProductGroup } from '../types';
 
 export const calculateMetrics = (records: SalesRecord[], productGroups: ProductGroup[]): SalesMetrics => {
-  if (records.length === 0) {
+  if (!records || records.length === 0) {
     return {
       totalUnits: 0,
       uniqueStores: 0,
@@ -12,7 +12,7 @@ export const calculateMetrics = (records: SalesRecord[], productGroups: ProductG
       topProducts: [],
       topGroups: [],
       timeline: [],
-      dateRange: { start: '', end: '' },
+      dateRange: { start: '-', end: '-' },
       byGroup: [],
       byMonth: [],
       byStore: []
@@ -96,9 +96,11 @@ const calculateGroupMetrics = (records: SalesRecord[], productGroups: ProductGro
   const groupMap = new Map<string, { units: number; products: Set<string>; stores: Set<string> }>();
   const colorMap = new Map<string, string>();
 
-  productGroups.forEach(pg => {
-    colorMap.set(pg.group_name, pg.color);
-  });
+  if (productGroups && productGroups.length > 0) {
+    productGroups.forEach(pg => {
+      colorMap.set(pg.group_name, pg.color);
+    });
+  }
 
   records.forEach(r => {
     const grupo = r.grupo || 'Sin Clasificar';
