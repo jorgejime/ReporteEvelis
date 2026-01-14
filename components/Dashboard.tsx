@@ -47,7 +47,7 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, av
 
   const has2025 = salesData.some(d => d.year === 2025);
   const has2026 = salesData.some(d => d.year === 2026);
-  const showYearComparison = !selectedYear && has2025 && has2026;
+  const showYearComparison = has2025 && has2026;
 
   const metrics2025 = has2025 ? calculateMetricsForYear(salesData, 2025) : null;
   const metrics2026 = has2026 ? calculateMetricsForYear(salesData, 2026) : null;
