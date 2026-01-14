@@ -24,6 +24,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
+  const [initProgress, setInitProgress] = useState<string>('Conectando...');
   const [xlsxReady, setXlsxReady] = useState(false);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -51,13 +52,11 @@ export default function App() {
     const initialize = async () => {
       console.log('[INIT] Iniciando conexión con Supabase...');
       setInitError(null);
-
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Timeout: La conexión tardó más de 15 segundos')), 15000)
-      );
+      setInitProgress('Conectando con Supabase...');
 
       try {
         console.log('[INIT] Verificando migración...');
+        setInitProgress('Verificando datos locales...');
         const migrationResult = await checkAndMigrate();
         console.log('[INIT] Migración completada:', migrationResult);
 
@@ -66,20 +65,20 @@ export default function App() {
         }
 
         console.log('[INIT] Obteniendo datos de ventas...');
+        setInitProgress('Cargando registros de ventas...');
         const dataPromise = backend.getAll();
 
         console.log('[INIT] Obteniendo grupos de productos...');
+        setInitProgress('Cargando grupos de productos...');
         const groupsPromise = backend.getProductGroups().catch(error => {
           console.warn('[INIT] Error al cargar grupos (no crítico):', error);
           return [];
         });
 
-        const [data, groups] = await Promise.race([
-          Promise.all([dataPromise, groupsPromise]),
-          timeout
-        ]) as [SalesRecord[], ProductGroup[]];
+        const [data, groups] = await Promise.all([dataPromise, groupsPromise]);
 
         console.log(`[INIT] Datos cargados: ${data.length} registros, ${groups.length} grupos`);
+        setInitProgress('Finalizando...');
 
         setSalesData(data);
         setProductGroups(groups);
@@ -271,6 +270,7 @@ export default function App() {
                 <CloudUpload className="w-16 h-16 mb-4 text-blue-600 animate-bounce mx-auto" />
                 <h2 className="text-2xl font-bold text-slate-800 text-center">Conectando a Supabase Cloud</h2>
                 <p className="text-slate-500 mt-2 text-sm text-center">Sincronizando con tu base de datos segura en la nube</p>
+                <p className="text-blue-600 mt-3 text-sm text-center font-semibold">{initProgress}</p>
                 <div className="mt-6 flex justify-center">
                   <div className="flex space-x-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
