@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { StoreReportData, MonthlyRankingData, DetailedProductData, ReportFilters } from '../types';
 import { MONTHS } from './reportDataProcessor';
