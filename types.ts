@@ -10,6 +10,42 @@ export interface SalesRecord {
   total?: number;
 }
 
+export interface ProductGroup {
+  id: string;
+  group_name: string;
+  keywords: string[];
+  priority: number;
+  color: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface GroupMetrics {
+  groupName: string;
+  totalUnits: number;
+  uniqueProducts: number;
+  uniqueStores: number;
+  percentage: number;
+  color: string;
+}
+
+export interface MonthMetrics {
+  month: string;
+  year: number;
+  totalUnits: number;
+  uniqueProducts: number;
+  uniqueStores: number;
+  byGroup: { groupName: string; units: number }[];
+}
+
+export interface StoreMetrics {
+  storeName: string;
+  totalUnits: number;
+  uniqueProducts: number;
+  byGroup: { groupName: string; units: number }[];
+  byMonth: { month: string; units: number }[];
+}
+
 export interface SalesMetrics {
   totalUnits: number;
   uniqueStores: number;
@@ -21,6 +57,9 @@ export interface SalesMetrics {
   topGroups: { name: string; value: number }[];
   timeline: { date: string; value: number }[];
   dateRange: { start: string; end: string };
+  byGroup: GroupMetrics[];
+  byMonth: MonthMetrics[];
+  byStore: StoreMetrics[];
 }
 
 export interface AIReport {

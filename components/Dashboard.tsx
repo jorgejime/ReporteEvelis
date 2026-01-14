@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Cell
 } from 'recharts';
 import {
-  Package, MapPin, Filter, Calendar, Trash2, TrendingUp, Layers, ArrowUp, ArrowDown
+  Package, MapPin, Filter, Calendar, Trash2, TrendingUp, Layers, ArrowUp, ArrowDown, BarChart3, Building2, CalendarDays
 } from 'lucide-react';
 import { SalesMetrics } from '../types';
 import KPICard from './KPICard';
 import YearSelector from './YearSelector';
+import GroupsView from './GroupsView';
+import MonthsView from './MonthsView';
+import StoresView from './StoresView';
 
 interface DashboardProps {
   metrics: SalesMetrics;
@@ -22,7 +25,11 @@ interface DashboardProps {
 
 const COLORS = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
+type DashboardView = 'general' | 'grupos' | 'meses' | 'tiendas';
+
 const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, availableYears, selectedYear, onYearChange, salesData }) => {
+  const [activeView, setActiveView] = useState<DashboardView>('general');
+
   if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in fade-in duration-500">
@@ -227,7 +234,62 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, av
         );
       })()}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="bg-white p-2 rounded-xl shadow-sm border border-slate-200 mb-6">
+        <div className="flex gap-2">
+          <button
+            onClick={() => setActiveView('general')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold transition-all ${
+              activeView === 'general'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span>General</span>
+          </button>
+          <button
+            onClick={() => setActiveView('grupos')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold transition-all ${
+              activeView === 'grupos'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Layers className="w-5 h-5" />
+            <span>Por Grupo</span>
+          </button>
+          <button
+            onClick={() => setActiveView('meses')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold transition-all ${
+              activeView === 'meses'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <CalendarDays className="w-5 h-5" />
+            <span>Por Mes</span>
+          </button>
+          <button
+            onClick={() => setActiveView('tiendas')}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-bold transition-all ${
+              activeView === 'tiendas'
+                ? 'bg-blue-600 text-white shadow-md'
+                : 'text-slate-600 hover:bg-slate-100'
+            }`}
+          >
+            <Building2 className="w-5 h-5" />
+            <span>Por Tienda</span>
+          </button>
+        </div>
+      </div>
+
+      {activeView === 'grupos' && <GroupsView groupMetrics={metrics.byGroup} />}
+      {activeView === 'meses' && <MonthsView monthMetrics={metrics.byMonth} />}
+      {activeView === 'tiendas' && <StoresView storeMetrics={metrics.byStore} />}
+
+      {activeView === 'general' && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
           title="Total Unidades"
           value={metrics.totalUnits.toLocaleString()}
@@ -444,6 +506,8 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, av
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 };

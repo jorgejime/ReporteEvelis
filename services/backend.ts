@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient';
-import { SalesRecord, AIReport, SalesMetrics, UploadedFile } from '../types';
+import { SalesRecord, AIReport, SalesMetrics, UploadedFile, ProductGroup } from '../types';
 
 class SupabaseBackend {
   private tableName = 'sales_records';
@@ -458,6 +458,25 @@ class SupabaseBackend {
       return data || [];
     } catch (error) {
       console.error("Error getting filtered data:", error);
+      return [];
+    }
+  }
+
+  async getProductGroups(): Promise<ProductGroup[]> {
+    try {
+      const { data, error } = await supabase
+        .from('product_groups')
+        .select('*')
+        .order('priority', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching product groups:", error);
+        return [];
+      }
+
+      return data || [];
+    } catch (error) {
+      console.error("Error getting product groups:", error);
       return [];
     }
   }

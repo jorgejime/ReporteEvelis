@@ -7,15 +7,17 @@ import { ReportsHistory } from './components/ReportsHistory';
 import { UploadedFilesList } from './components/UploadedFilesList';
 import ToastContainer from './components/ToastContainer';
 import { ToastData } from './components/Toast';
-import { SalesRecord, SalesMetrics, AppTab } from './types';
+import { SalesRecord, SalesMetrics, AppTab, ProductGroup } from './types';
 import { processSingleFile } from './services/dataProcessing';
 import { backend } from './services/backend';
 import { checkAndMigrate } from './services/migration';
+import { calculateMetrics } from './services/metricsCalculator';
 import { Layers, Database, Server, RefreshCw, Upload, CloudUpload } from 'lucide-react';
 
 
 export default function App() {
   const [salesData, setSalesData] = useState<SalesRecord[]>([]);
+  const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);
   const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [loading, setLoading] = useState(false);
@@ -46,8 +48,13 @@ export default function App() {
           addToast('success', `¡Migración exitosa! ${migrationResult.recordCount} registros movidos a Supabase Cloud.`, 7000);
         }
 
-        const data = await backend.getAll();
+        const [data, groups] = await Promise.all([
+          backend.getAll(),
+          backend.getProductGroups()
+        ]);
+
         setSalesData(data);
+        setProductGroups(groups);
 
         if (data.length > 0 && !migrationResult.migrated) {
           addToast('info', `${data.length} registros cargados desde Supabase Cloud.`, 4000);
@@ -102,89 +109,8 @@ export default function App() {
   }, [salesData, selectedYear]);
 
   const metrics: SalesMetrics = useMemo(() => {
-    const dataToAnalyze = filteredSalesData;
-    if (dataToAnalyze.length === 0) {
-      return {
-        totalUnits: 0,
-        uniqueStores: 0,
-        uniqueProducts: 0,
-        uniqueGroups: 0,
-        averageUnitsPerDay: 0,
-        topStores: [],
-        topProducts: [],
-        topGroups: [],
-        timeline: [],
-        dateRange: { start: '-', end: '-' }
-      };
-    }
-
-    const totalUnits = dataToAnalyze.reduce((acc, curr) => acc + curr.qty, 0);
-    const uniqueStores = new Set(dataToAnalyze.map(d => d.store)).size;
-    const uniqueProducts = new Set(dataToAnalyze.map(d => d.product)).size;
-    const uniqueGroups = new Set(dataToAnalyze.filter(d => d.grupo).map(d => d.grupo)).size;
-
-    const storeMap: Record<string, number> = {};
-    dataToAnalyze.forEach(d => {
-      storeMap[d.store] = (storeMap[d.store] || 0) + d.qty;
-    });
-    const topStores = Object.entries(storeMap)
-      .map(([name, val]) => ({ name, value: val }))
-      .sort((a, b) => b.value - a.value);
-
-    const productMap: Record<string, number> = {};
-    dataToAnalyze.forEach(d => {
-      const name = d.product.length > 25 ? d.product.substring(0, 25) + '...' : d.product;
-      productMap[name] = (productMap[name] || 0) + d.qty;
-    });
-    const topProducts = Object.entries(productMap)
-      .map(([name, val]) => ({ name, value: val }))
-      .sort((a, b) => b.value - a.value);
-
-    const groupMap: Record<string, number> = {};
-    dataToAnalyze.forEach(d => {
-      if (d.grupo) {
-        groupMap[d.grupo] = (groupMap[d.grupo] || 0) + d.qty;
-      }
-    });
-    const topGroups = Object.entries(groupMap)
-      .map(([name, val]) => ({ name, value: val }))
-      .sort((a, b) => b.value - a.value);
-
-    const dateMap: Record<string, number> = {};
-    const dates: string[] = [];
-    dataToAnalyze.forEach(d => {
-      if (!dateMap[d.date]) {
-        dateMap[d.date] = 0;
-        dates.push(d.date);
-      }
-      dateMap[d.date] += d.qty;
-    });
-    const timeline = Object.entries(dateMap)
-      .map(([date, val]) => ({ date, value: val }))
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-    dates.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-    const dateRange = {
-      start: dates[0] || '-',
-      end: dates[dates.length - 1] || '-'
-    };
-
-    const uniqueDays = dates.length;
-    const averageUnitsPerDay = uniqueDays > 0 ? totalUnits / uniqueDays : 0;
-
-    return {
-      totalUnits,
-      uniqueStores,
-      uniqueProducts,
-      uniqueGroups,
-      averageUnitsPerDay,
-      topStores,
-      topProducts,
-      topGroups,
-      timeline,
-      dateRange
-    };
-  }, [filteredSalesData]);
+    return calculateMetrics(filteredSalesData, productGroups);
+  }, [filteredSalesData, productGroups]);
 
   const processFiles = async (files: File[]) => {
     if (files.length === 0) return;
