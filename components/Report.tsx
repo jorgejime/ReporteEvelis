@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { SalesRecord, ReportType, ReportFilters } from '../types';
+import { SalesRecord, ReportType, ReportFilters as IReportFilters } from '../types';
 import { FileBarChart, Download, Printer, Share2 } from 'lucide-react';
 import ReportFilters from './ReportFilters';
 import SalesReportTable from './SalesReportTable';
@@ -25,13 +25,13 @@ interface ReportProps {
 
 const Report: React.FC<ReportProps> = ({ salesData }) => {
   const [reportType, setReportType] = useState<ReportType>(ReportType.SALES_BY_STORE);
-  const [filters, setFilters] = useState<ReportFilters>({
+  const [filters, setFilters] = useState<IReportFilters>({
     year: null,
     month: null,
     store: null,
     line: null
   });
-  const [appliedFilters, setAppliedFilters] = useState<ReportFilters>(filters);
+  const [appliedFilters, setAppliedFilters] = useState<IReportFilters>(filters);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const availableYears = useMemo(() => getUniqueYears(salesData), [salesData]);
