@@ -7,7 +7,8 @@ import {
   Bot,
   Sparkles,
   FileText,
-  MessageSquare
+  MessageSquare,
+  FileBarChart
 } from 'lucide-react';
 import { AppTab } from '../types';
 
@@ -19,6 +20,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
   const navItems = [
     { id: AppTab.DASHBOARD, label: 'Dashboard', icon: LayoutDashboard },
+    { id: AppTab.REPORT, label: 'Informe', icon: FileBarChart, badge: 'GERENCIAL' },
     { id: AppTab.AI_REPORT, label: 'Reporte IA', icon: Bot },
     { id: AppTab.CHAT_AI, label: 'Chat IA', icon: MessageSquare },
     { id: AppTab.REPORTS_HISTORY, label: 'Historial', icon: FileText },
@@ -63,6 +65,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
               )}
               <Icon className={`w-5 h-5 relative z-10 ${isActive ? 'text-white' : 'text-slate-500 group-hover:text-white'}`} />
               <span className="font-semibold text-sm relative z-10">{item.label}</span>
+              {item.id === AppTab.REPORT && (
+                <span className="ml-auto bg-gradient-to-r from-amber-500 to-orange-500 text-[10px] font-bold px-2 py-1 rounded-md text-white shadow-lg shadow-amber-500/50 relative z-10">
+                  GERENCIAL
+                </span>
+              )}
               {item.id === AppTab.AI_REPORT && (
                 <span className="ml-auto bg-gradient-to-r from-emerald-500 to-emerald-600 text-[10px] font-bold px-2 py-1 rounded-md text-white shadow-lg shadow-emerald-500/50 relative z-10">
                   IA

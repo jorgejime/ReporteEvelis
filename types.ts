@@ -99,11 +99,49 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export enum ReportType {
+  SALES_BY_STORE = 'sales_by_store',
+  MONTHLY_RANKING = 'monthly_ranking',
+  DETAILED_BY_PRODUCT = 'detailed_by_product'
+}
+
+export interface ReportFilters {
+  year: number | null;
+  month: number | null;
+  store: string | null;
+  line: string | null;
+}
+
+export interface StoreReportData {
+  storeName: string;
+  lines: { [lineName: string]: number };
+  total: number;
+}
+
+export interface MonthlyRankingData {
+  storeName: string;
+  monthlyData: { [month: string]: number };
+  totalYear: number;
+  rankings: { [month: string]: number };
+  accumulatedRanking: number;
+  trend: 'up' | 'down' | 'stable';
+}
+
+export interface DetailedProductData {
+  storeName: string;
+  products: {
+    productName: string;
+    monthlyData: { [month: string]: number };
+    total: number;
+  }[];
+}
+
 export enum AppTab {
   DASHBOARD = 'dashboard',
-  UPLOAD = 'upload',
-  DATA = 'data',
+  REPORT = 'report',
   AI_REPORT = 'ai_report',
   CHAT_AI = 'chat_ai',
-  REPORTS_HISTORY = 'reports_history'
+  REPORTS_HISTORY = 'reports_history',
+  UPLOAD = 'upload',
+  DATA = 'data'
 }

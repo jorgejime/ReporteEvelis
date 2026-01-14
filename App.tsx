@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './components/Dashboard';
+import Report from './components/Report';
 import AIReport from './components/AIReport';
 import ChatAI from './components/ChatAI';
 import { ReportsHistory } from './components/ReportsHistory';
@@ -316,6 +317,10 @@ export default function App() {
             onYearChange={setSelectedYear}
             salesData={salesData}
           />
+        )}
+
+        {activeTab === AppTab.REPORT && (
+          <Report salesData={salesData} />
         )}
 
         {activeTab === AppTab.AI_REPORT && (
