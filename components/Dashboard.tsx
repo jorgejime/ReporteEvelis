@@ -4,7 +4,7 @@ import {
   LineChart, Line, Cell
 } from 'recharts';
 import {
-  Package, MapPin, Filter, Calendar, Trash2, TrendingUp, Layers
+  Package, MapPin, Filter, Calendar, Trash2, TrendingUp, Layers, ArrowUp, ArrowDown
 } from 'lucide-react';
 import { SalesMetrics } from '../types';
 import KPICard from './KPICard';
@@ -91,68 +91,141 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, av
         )}
       </div>
 
-      {showYearComparison && (
-        <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 p-6 rounded-2xl border-2 border-blue-200/50 shadow-lg">
-          <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
-            <Calendar className="w-6 h-6 mr-3 text-blue-600" />
-            Comparativo por Año
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {metrics2025 && (
-              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-md border border-slate-200/50">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
-                    2025
-                  </h4>
-                  <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
-                    CONSOLIDADO
+      {showYearComparison && (() => {
+        const variationUnits = metrics2025 && metrics2026
+          ? ((metrics2026.totalUnits - metrics2025.totalUnits) / metrics2025.totalUnits) * 100
+          : 0;
+        const variationStores = metrics2025 && metrics2026
+          ? ((metrics2026.uniqueStores - metrics2025.uniqueStores) / metrics2025.uniqueStores) * 100
+          : 0;
+        const variationProducts = metrics2025 && metrics2026
+          ? ((metrics2026.uniqueProducts - metrics2025.uniqueProducts) / metrics2025.uniqueProducts) * 100
+          : 0;
+
+        return (
+          <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-700 p-8 rounded-3xl shadow-2xl border-4 border-blue-500/50 animate-in zoom-in-95 duration-500">
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-3xl font-black text-white flex items-center">
+                <Calendar className="w-10 h-10 mr-4 text-yellow-300 drop-shadow-lg" />
+                Comparativo Anual: 2025 vs 2026
+              </h3>
+              <div className="bg-yellow-400 text-blue-900 px-5 py-2 rounded-full text-sm font-black uppercase shadow-lg">
+                Resumen Consolidado
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {metrics2025 && (
+                <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-emerald-300/50 transform hover:scale-105 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-3xl font-black bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                      2025
+                    </h4>
+                    <div className="bg-gradient-to-r from-emerald-500 to-green-500 text-white px-4 py-2 rounded-full text-xs font-black shadow-lg">
+                      ✓ CONSOLIDADO
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border-2 border-emerald-200">
+                      <span className="text-xs text-slate-600 font-bold uppercase block mb-2">Total Unidades</span>
+                      <span className="text-3xl font-black text-emerald-700">{metrics2025.totalUnits.toLocaleString()}</span>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border-2 border-cyan-200">
+                      <span className="text-xs text-slate-600 font-bold uppercase block mb-2">Puntos de Venta</span>
+                      <span className="text-3xl font-black text-cyan-700">{metrics2025.uniqueStores}</span>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
+                      <span className="text-xs text-slate-600 font-bold uppercase block mb-2">Productos Únicos</span>
+                      <span className="text-3xl font-black text-blue-700">{metrics2025.uniqueProducts}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-transparent rounded-lg">
-                    <span className="text-sm text-slate-600 font-medium">Total Unidades</span>
-                    <span className="text-xl font-bold text-emerald-700">{metrics2025.totalUnits.toLocaleString()}</span>
+              )}
+
+              {metrics2026 && (
+                <div className="bg-white/95 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-blue-300/50 transform hover:scale-105 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <h4 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                      2026
+                    </h4>
+                    <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-4 py-2 rounded-full text-xs font-black shadow-lg animate-pulse">
+                      ⚡ EN CURSO
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-cyan-50 to-transparent rounded-lg">
-                    <span className="text-sm text-slate-600 font-medium">Puntos de Venta</span>
-                    <span className="text-xl font-bold text-cyan-700">{metrics2025.uniqueStores}</span>
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border-2 border-blue-200">
+                      <span className="text-xs text-slate-600 font-bold uppercase block mb-2">Total Unidades</span>
+                      <span className="text-3xl font-black text-blue-700">{metrics2026.totalUnits.toLocaleString()}</span>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl border-2 border-cyan-200">
+                      <span className="text-xs text-slate-600 font-bold uppercase block mb-2">Puntos de Venta</span>
+                      <span className="text-3xl font-black text-cyan-700">{metrics2026.uniqueStores}</span>
+                    </div>
+                    <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border-2 border-indigo-200">
+                      <span className="text-xs text-slate-600 font-bold uppercase block mb-2">Productos Únicos</span>
+                      <span className="text-3xl font-black text-indigo-700">{metrics2026.uniqueProducts}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-transparent rounded-lg">
-                    <span className="text-sm text-slate-600 font-medium">Productos Únicos</span>
-                    <span className="text-xl font-bold text-blue-700">{metrics2025.uniqueProducts}</span>
+                </div>
+              )}
+
+              <div className="bg-gradient-to-br from-yellow-400 to-orange-400 p-6 rounded-2xl shadow-xl border-2 border-yellow-300 transform hover:scale-105 transition-all duration-300">
+                <h4 className="text-2xl font-black text-slate-900 mb-6 flex items-center">
+                  <TrendingUp className="w-7 h-7 mr-3" />
+                  Variación
+                </h4>
+                <div className="space-y-4">
+                  <div className="p-4 bg-white/90 rounded-xl shadow-md">
+                    <span className="text-xs text-slate-700 font-bold uppercase block mb-2">Unidades</span>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-3xl font-black ${variationUnits >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {variationUnits >= 0 ? '+' : ''}{variationUnits.toFixed(1)}%
+                      </span>
+                      {variationUnits >= 0 ? (
+                        <ArrowUp className="w-8 h-8 text-green-600 animate-bounce" />
+                      ) : (
+                        <ArrowDown className="w-8 h-8 text-red-600 animate-bounce" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-white/90 rounded-xl shadow-md">
+                    <span className="text-xs text-slate-700 font-bold uppercase block mb-2">Puntos de Venta</span>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-3xl font-black ${variationStores >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {variationStores >= 0 ? '+' : ''}{variationStores.toFixed(1)}%
+                      </span>
+                      {variationStores >= 0 ? (
+                        <ArrowUp className="w-8 h-8 text-green-600 animate-bounce" />
+                      ) : (
+                        <ArrowDown className="w-8 h-8 text-red-600 animate-bounce" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4 bg-white/90 rounded-xl shadow-md">
+                    <span className="text-xs text-slate-700 font-bold uppercase block mb-2">Productos</span>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-3xl font-black ${variationProducts >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {variationProducts >= 0 ? '+' : ''}{variationProducts.toFixed(1)}%
+                      </span>
+                      {variationProducts >= 0 ? (
+                        <ArrowUp className="w-8 h-8 text-green-600 animate-bounce" />
+                      ) : (
+                        <ArrowDown className="w-8 h-8 text-red-600 animate-bounce" />
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            )}
-            {metrics2026 && (
-              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-md border border-slate-200/50">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-                    2026
-                  </h4>
-                  <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
-                    EN CURSO
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-transparent rounded-lg">
-                    <span className="text-sm text-slate-600 font-medium">Total Unidades</span>
-                    <span className="text-xl font-bold text-blue-700">{metrics2026.totalUnits.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-cyan-50 to-transparent rounded-lg">
-                    <span className="text-sm text-slate-600 font-medium">Puntos de Venta</span>
-                    <span className="text-xl font-bold text-cyan-700">{metrics2026.uniqueStores}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-transparent rounded-lg">
-                    <span className="text-sm text-slate-600 font-medium">Productos Únicos</span>
-                    <span className="text-xl font-bold text-emerald-700">{metrics2026.uniqueProducts}</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
+
+            <div className="mt-6 p-4 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+              <p className="text-white text-sm font-medium text-center">
+                <span className="font-black">Nota:</span> 2025 muestra datos consolidados del año completo. 2026 muestra datos parciales en curso hasta la fecha.
+              </p>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard
