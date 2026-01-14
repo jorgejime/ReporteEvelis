@@ -17,11 +17,12 @@ interface DashboardProps {
   availableYears: number[];
   selectedYear: number | null;
   onYearChange: (year: number | null) => void;
+  salesData: any[];
 }
 
 const COLORS = ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
-const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, availableYears, selectedYear, onYearChange }) => {
+const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, availableYears, selectedYear, onYearChange, salesData }) => {
   if (!hasData) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] text-center animate-in fade-in duration-500">
@@ -34,6 +35,22 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, av
       </div>
     );
   }
+
+  const calculateMetricsForYear = (data: any[], year: number) => {
+    const yearData = data.filter(d => d.year === year);
+    const totalUnits = yearData.reduce((acc, curr) => acc + curr.qty, 0);
+    const uniqueStores = new Set(yearData.map(d => d.store)).size;
+    const uniqueProducts = new Set(yearData.map(d => d.product)).size;
+
+    return { totalUnits, uniqueStores, uniqueProducts };
+  };
+
+  const has2025 = salesData.some(d => d.year === 2025);
+  const has2026 = salesData.some(d => d.year === 2026);
+  const showYearComparison = !selectedYear && has2025 && has2026;
+
+  const metrics2025 = has2025 ? calculateMetricsForYear(salesData, 2025) : null;
+  const metrics2026 = has2026 ? calculateMetricsForYear(salesData, 2026) : null;
 
   const totalUnits = metrics.totalUnits;
   const topStorePercent = metrics.topStores[0]
@@ -73,6 +90,69 @@ const Dashboard: React.FC<DashboardProps> = ({ metrics, hasData, onClearData, av
           </div>
         )}
       </div>
+
+      {showYearComparison && (
+        <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 p-6 rounded-2xl border-2 border-blue-200/50 shadow-lg">
+          <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center">
+            <Calendar className="w-6 h-6 mr-3 text-blue-600" />
+            Comparativo por Año
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {metrics2025 && (
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-md border border-slate-200/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-2xl font-bold bg-gradient-to-r from-emerald-600 to-green-600 bg-clip-text text-transparent">
+                    2025
+                  </h4>
+                  <div className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold">
+                    CONSOLIDADO
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-transparent rounded-lg">
+                    <span className="text-sm text-slate-600 font-medium">Total Unidades</span>
+                    <span className="text-xl font-bold text-emerald-700">{metrics2025.totalUnits.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-cyan-50 to-transparent rounded-lg">
+                    <span className="text-sm text-slate-600 font-medium">Puntos de Venta</span>
+                    <span className="text-xl font-bold text-cyan-700">{metrics2025.uniqueStores}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-transparent rounded-lg">
+                    <span className="text-sm text-slate-600 font-medium">Productos Únicos</span>
+                    <span className="text-xl font-bold text-blue-700">{metrics2025.uniqueProducts}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {metrics2026 && (
+              <div className="bg-white/80 backdrop-blur-sm p-6 rounded-xl shadow-md border border-slate-200/50">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    2026
+                  </h4>
+                  <div className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                    EN CURSO
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-transparent rounded-lg">
+                    <span className="text-sm text-slate-600 font-medium">Total Unidades</span>
+                    <span className="text-xl font-bold text-blue-700">{metrics2026.totalUnits.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-cyan-50 to-transparent rounded-lg">
+                    <span className="text-sm text-slate-600 font-medium">Puntos de Venta</span>
+                    <span className="text-xl font-bold text-cyan-700">{metrics2026.uniqueStores}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 bg-gradient-to-r from-emerald-50 to-transparent rounded-lg">
+                    <span className="text-sm text-slate-600 font-medium">Productos Únicos</span>
+                    <span className="text-xl font-bold text-emerald-700">{metrics2026.uniqueProducts}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KPICard

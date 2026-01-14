@@ -337,6 +337,7 @@ export default function App() {
             availableYears={availableYears}
             selectedYear={selectedYear}
             onYearChange={setSelectedYear}
+            salesData={salesData}
           />
         )}
 
