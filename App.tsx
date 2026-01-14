@@ -12,7 +12,7 @@ import { processSingleFile } from './services/dataProcessing';
 import { backend } from './services/backend';
 import { checkAndMigrate } from './services/migration';
 import { calculateMetrics } from './services/metricsCalculator';
-import { Layers, Database, Server, RefreshCw, Upload, CloudUpload } from 'lucide-react';
+import { Layers, Database, Server, RefreshCw, Upload, CloudUpload, AlertCircle } from 'lucide-react';
 
 
 export default function App() {
@@ -22,6 +22,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>(AppTab.DASHBOARD);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const [xlsxReady, setXlsxReady] = useState(false);
   const [toasts, setToasts] = useState<ToastData[]>([]);
   const [dragActive, setDragActive] = useState(false);
@@ -39,29 +40,61 @@ export default function App() {
     addToast(type, message);
   };
 
+  const retryInitialization = () => {
+    setInitializing(true);
+    setInitError(null);
+    window.location.reload();
+  };
+
   useEffect(() => {
     const initialize = async () => {
+      console.log('[INIT] Iniciando conexión con Supabase...');
+      setInitError(null);
+
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Timeout: La conexión tardó más de 15 segundos')), 15000)
+      );
+
       try {
+        console.log('[INIT] Verificando migración...');
         const migrationResult = await checkAndMigrate();
+        console.log('[INIT] Migración completada:', migrationResult);
 
         if (migrationResult.migrated) {
           addToast('success', `¡Migración exitosa! ${migrationResult.recordCount} registros movidos a Supabase Cloud.`, 7000);
         }
 
-        const [data, groups] = await Promise.all([
-          backend.getAll(),
-          backend.getProductGroups()
-        ]);
+        console.log('[INIT] Obteniendo datos de ventas...');
+        const dataPromise = backend.getAll();
+
+        console.log('[INIT] Obteniendo grupos de productos...');
+        const groupsPromise = backend.getProductGroups().catch(error => {
+          console.warn('[INIT] Error al cargar grupos (no crítico):', error);
+          return [];
+        });
+
+        const [data, groups] = await Promise.race([
+          Promise.all([dataPromise, groupsPromise]),
+          timeout
+        ]) as [SalesRecord[], ProductGroup[]];
+
+        console.log(`[INIT] Datos cargados: ${data.length} registros, ${groups.length} grupos`);
 
         setSalesData(data);
         setProductGroups(groups);
 
         if (data.length > 0 && !migrationResult.migrated) {
           addToast('info', `${data.length} registros cargados desde Supabase Cloud.`, 4000);
+        } else if (data.length === 0) {
+          console.log('[INIT] Base de datos vacía');
         }
-      } catch (e) {
-        console.error("Error conectando con Supabase", e);
-        addToast('error', 'Error al conectar con la base de datos en la nube.');
+
+        console.log('[INIT] Inicialización completada exitosamente');
+      } catch (e: any) {
+        console.error('[INIT] Error durante la inicialización:', e);
+        const errorMsg = e?.message || 'Error desconocido al conectar con Supabase';
+        setInitError(errorMsg);
+        addToast('error', `Error de conexión: ${errorMsg}`);
       } finally {
         setInitializing(false);
       }
@@ -231,17 +264,35 @@ export default function App() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-100">
         <div className="relative">
           <div className="absolute inset-0 bg-blue-500/20 blur-3xl rounded-full animate-pulse"></div>
-          <div className="relative bg-white p-8 rounded-2xl shadow-xl border border-slate-200">
-            <CloudUpload className="w-16 h-16 mb-4 text-blue-600 animate-bounce mx-auto" />
-            <h2 className="text-2xl font-bold text-slate-800 text-center">Conectando a Supabase Cloud</h2>
-            <p className="text-slate-500 mt-2 text-sm text-center max-w-sm">Sincronizando con tu base de datos segura en la nube</p>
-            <div className="mt-6 flex justify-center">
-              <div className="flex space-x-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-              </div>
-            </div>
+          <div className="relative bg-white p-8 rounded-2xl shadow-xl border border-slate-200 max-w-md">
+            {!initError ? (
+              <>
+                <CloudUpload className="w-16 h-16 mb-4 text-blue-600 animate-bounce mx-auto" />
+                <h2 className="text-2xl font-bold text-slate-800 text-center">Conectando a Supabase Cloud</h2>
+                <p className="text-slate-500 mt-2 text-sm text-center">Sincronizando con tu base de datos segura en la nube</p>
+                <div className="mt-6 flex justify-center">
+                  <div className="flex space-x-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-16 h-16 mb-4 text-red-500 mx-auto" />
+                <h2 className="text-2xl font-bold text-slate-800 text-center">Error de Conexión</h2>
+                <p className="text-slate-600 mt-2 text-sm text-center">{initError}</p>
+                <p className="text-slate-500 mt-2 text-xs text-center">Verifica tu conexión a internet y las credenciales de Supabase</p>
+                <button
+                  onClick={retryInitialization}
+                  className="mt-6 w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 px-6 rounded-xl font-bold hover:from-blue-600 hover:to-cyan-600 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                  Reintentar Conexión
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
